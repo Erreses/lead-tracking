@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/*
+ * Palette validated with the data-viz six-checks validator.
+ * - Funnel stages use an ordinal blue ramp (monotone lightness, visible step
+ *   gaps, light end clears the surface) — pipeline stages are genuinely ordered.
+ * - Category and website-class bars are a SINGLE hue: those categories have no
+ *   natural order, and a value-ramp there would double-encode bar length as
+ *   colour.
+ * - Status colours are reserved for good/bad state and never used as a series.
+ */
+:root {
+  --surface: #fcfcfb;
+  --card: #ffffff;
+  --card-muted: #f6f6f4;
+  --border: #e4e4e0;
+  --border-strong: #d3d3cd;
+
+  --text: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #78776f;
+
+  --accent: #2a78d6;
+  --accent-hover: #256abf;
+  --accent-soft: #e8f1fd;
+  --accent-ink: #ffffff;
+
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  --funnel-1: #86b6ef;
+  --funnel-2: #5598e7;
+  --funnel-3: #2a78d6;
+  --funnel-4: #1c5cab;
+  --funnel-5: #0d366b;
+
+  --grid: #ececE8;
+  --track: #f0efec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19;
+    --card: #232322;
+    --card-muted: #2b2b29;
+    --border: #383835;
+    --border-strong: #4a4a46;
+
+    --text: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #96958c;
+
+    --accent: #3987e5;
+    --accent-hover: #5598e7;
+    --accent-soft: #1d2f47;
+    --accent-ink: #ffffff;
+
+    --funnel-1: #cde2fb;
+    --funnel-2: #9ec5f4;
+    --funnel-3: #5598e7;
+    --funnel-4: #256abf;
+    --funnel-5: #184f95;
+
+    --grid: #2f2f2c;
+    --track: #383835;
+  }
+}
+
+:root[data-theme="dark"] {
+  --surface: #1a1a19;
+  --card: #232322;
+  --card-muted: #2b2b29;
+  --border: #383835;
+  --border-strong: #4a4a46;
+
+  --text: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #96958c;
+
+  --accent: #3987e5;
+  --accent-hover: #5598e7;
+  --accent-soft: #1d2f47;
+  --accent-ink: #ffffff;
+
+  --funnel-1: #cde2fb;
+  --funnel-2: #9ec5f4;
+  --funnel-3: #5598e7;
+  --funnel-4: #256abf;
+  --funnel-5: #184f95;
+
+  --grid: #2f2f2c;
+  --track: #383835;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-muted: var(--card-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --color-track: var(--track);
+  --color-grid: var(--grid);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Columns of numbers must align; large standalone values must not. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Recessive focus ring that still clears contrast on both surfaces. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
