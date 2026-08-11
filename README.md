@@ -38,13 +38,25 @@ The SQLite database is created and migrated automatically on first run at
 
 Put it in `.env.local` as `GOOGLE_MAPS_API_KEY=...` and restart the dev server.
 
+`npm run dev` is the command that starts the server — it prints the URL when it's
+ready:
+
+```
+▲ Next.js 16.3.0 (Turbopack)
+- Local:         http://localhost:3000
+✓ Ready in 436ms
+```
+
 ### Want to look around first?
 
 ```bash
 npm run seed:demo      # 60 fake Madrid businesses, tagged "DEMO ·"
+npm run dev            # then open http://localhost:3000
 ```
 
-Costs nothing and touches no API. Delete `data/leads.db` to start clean.
+`seed:demo` only fills the database and exits — it doesn't start the app, so it
+prints no URL. Run `npm run dev` after it. Seeding costs nothing and touches no
+API. Delete `data/leads.db` to start clean.
 
 ---
 

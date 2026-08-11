@@ -181,3 +181,6 @@ db.insert(scrapeJobs)
 
 console.log(`Seeded ${created} demo businesses and ${leadCount} demo leads.`);
 console.log('They are tagged "DEMO ·" in the area column. Re-run with --reset to clear.');
+console.log("");
+console.log("This script only fills the database — it does not start the app.");
+console.log("Next:  npm run dev     then open http://localhost:3000");
