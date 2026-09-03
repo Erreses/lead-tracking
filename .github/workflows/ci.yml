@@ -16,13 +16,50 @@ jobs:
     name: Typecheck, lint, test, build
     runs-on: ubuntu-latest
 
+    services:
+      # The suite talks to a real Postgres rather than a mock: the queries under
+      # test lean on ON CONFLICT, filtered aggregates and advisory locks, none of
+      # which a fake would tell the truth about. Matches the version in
+      # docker-compose.yml.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/lead_tracking_test
+      DATABASE_SSL: disable
+
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
+
+      # The backup tests shell out to pg_dump and pg_restore, and a client older
+      # than the server refuses to run. Runners ship 16; the service above is 17.
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          pg_dump --version
 
       - name: Install dependencies
         run: npm ci
@@ -44,8 +81,15 @@ jobs:
         run: npm run lint
 
       # No API key and no network: the Places client is stubbed throughout.
+      # Global setup creates and wipes lead_tracking_test on the service above.
       - name: Test
         run: npm test
 
+      # Collecting page data imports every route, and those imports construct
+      # the Postgres client, which throws when DATABASE_URL is unset. Nothing
+      # connects — postgres.js is lazy and every route is dynamic — so a
+      # placeholder is enough, and the same one the Dockerfile uses.
       - name: Build
         run: npm run build
+        env:
+          DATABASE_URL: postgres://build:build@127.0.0.1:5432/build
