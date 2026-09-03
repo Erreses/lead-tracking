@@ -1,32 +1,20 @@
 import Link from "next/link";
 
 import { LeadFilters } from "@/components/lead-filters";
-import { Badge, EmptyState, PageHeader, formatCompact } from "@/components/ui";
-import { getCategory } from "@/config/categories";
-import { WEBSITE_CLASS_LABELS } from "@/lib/leads/classify";
-import { countLeads, filterOptions, parseLeadFilters, queryLeads } from "@/lib/leads/query";
+import { LeadsTable } from "@/components/leads-table";
+import { EmptyState, PageHeader, formatCompact, formatMoney } from "@/components/ui";
+import {
+  countLeads,
+  filterOptions,
+  parseLeadFilters,
+  queryLeads,
+  summarizeLeads,
+} from "@/lib/leads/query";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  qualified: "Qualified",
-  demo_built: "Demo built",
-  contacted: "Contacted",
-  negotiating: "Negotiating",
-  won: "Won",
-  lost: "Lost",
-  discarded: "Discarded",
-};
-
-function statusTone(status: string) {
-  if (status === "won") return "good" as const;
-  if (status === "lost" || status === "discarded") return "neutral" as const;
-  if (status === "new") return "accent" as const;
-  return "neutral" as const;
-}
 
 export default async function LeadsPage(props: PageProps<"/leads">) {
   const searchParams = await props.searchParams;
@@ -40,9 +28,14 @@ export default async function LeadsPage(props: PageProps<"/leads">) {
 
   const filters = parseLeadFilters(params);
   const page = Math.max(1, Number(params.get("page")) || 1);
-  const total = countLeads(filters);
-  const rows = queryLeads(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE);
-  const { areas } = filterOptions();
+  const total = await countLeads(filters);
+  const rows = await queryLeads(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE);
+  const { areas } = await filterOptions();
+  const stats = await summarizeLeads(filters);
+  const settings = await getSettings();
+
+  const firstOnPage = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const lastOnPage = Math.min(page * PAGE_SIZE, total);
 
   const exportParams = new URLSearchParams(params);
   exportParams.delete("page");
@@ -72,6 +65,30 @@ export default async function LeadsPage(props: PageProps<"/leads">) {
         }
       />
 
+      {/* Describes the current filter, not the whole database — narrowing to one
+          category should tell you about that category. */}
+      {total > 0 ? (
+        <dl className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[
+            { label: "Matching", value: formatCompact(stats.total) },
+            { label: "Untouched", value: formatCompact(stats.untouched) },
+            { label: "In play", value: formatCompact(stats.inPlay) },
+            {
+              label: "Quoted",
+              value: formatMoney(stats.pipelineValue, settings.currency),
+            },
+            { label: "Avg score", value: String(stats.avgScore) },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-line bg-card px-4 py-3">
+              <dt className="text-xs text-ink-muted">{stat.label}</dt>
+              <dd className="tnum mt-0.5 text-lg font-semibold tracking-tight">
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
       <LeadFilters areas={areas} />
 
       {rows.length === 0 ? (
@@ -94,53 +111,21 @@ export default async function LeadsPage(props: PageProps<"/leads">) {
         </EmptyState>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-line bg-card">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-xs text-ink-muted">
-                  <th className="px-4 py-2.5 font-medium">Business</th>
-                  <th className="px-4 py-2.5 font-medium">Why</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Reviews</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Rating</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Score</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {rows.map((row) => (
-                  <tr key={row.leadId} className="transition-colors hover:bg-card-muted">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/leads/${row.leadId}`} className="block">
-                        <span className="font-medium">{row.name}</span>
-                        <span className="mt-0.5 block truncate text-xs text-ink-muted">
-                          {getCategory(row.category ?? "")?.label ?? row.category}
-                          {row.areaName ? ` · ${row.areaName}` : ""}
-                          {row.phone ? ` · ${row.phone}` : ""}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-ink-secondary">
-                      {WEBSITE_CLASS_LABELS[row.websiteClass]}
-                    </td>
-                    <td className="tnum px-4 py-2.5 text-right text-ink-secondary">
-                      {row.userRatingCount ?? "—"}
-                    </td>
-                    <td className="tnum px-4 py-2.5 text-right text-ink-secondary">
-                      {row.rating?.toFixed(1) ?? "—"}
-                    </td>
-                    <td className="tnum px-4 py-2.5 text-right font-medium">
-                      {row.leadScore}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Badge tone={statusTone(row.status)}>
-                        {STATUS_LABELS[row.status] ?? row.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <LeadsTable
+            rows={rows}
+            sort={filters.sort}
+            dir={filters.dir}
+            params={exportParams.toString()}
+            outreach={{
+              myName: settings.myName,
+              whatsappTemplate: settings.whatsappTemplate,
+              currency: settings.currency,
+            }}
+          />
+
+          <p className="mt-3 text-xs text-ink-muted">
+            Showing {firstOnPage}–{lastOnPage} of {formatCompact(total)}
+          </p>
 
           {pageCount > 1 ? (
             <nav className="mt-4 flex items-center justify-between text-sm">

@@ -37,7 +37,7 @@ const COLUMNS = [
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const filters = parseLeadFilters(url.searchParams);
-  const rows = queryLeads(filters, 10_000, 0);
+  const rows = await queryLeads(filters, 10_000, 0);
 
   const lines = [COLUMNS.join(",")];
 

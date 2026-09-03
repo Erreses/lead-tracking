@@ -8,11 +8,8 @@
  * Demo rows are marked with an area name starting "DEMO ·" so they're easy to
  * spot and filter out. Never point this at a database with real leads in it.
  */
-import fs from "node:fs";
-import path from "node:path";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 
 import {
   businesses,
@@ -23,20 +20,17 @@ import {
 } from "@/lib/db/schema";
 import { classifyWebsite, scoreLead } from "@/lib/leads/classify";
 
-const DB_PATH = process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "leads.db");
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
-const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-const db = drizzle(sqlite);
-migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+const client = postgres(DATABASE_URL, { max: 1, onnotice: () => {} });
+const db = drizzle(client);
 
 if (process.argv.includes("--reset")) {
-  db.delete(leadEvents).run();
-  db.delete(leads).run();
-  db.delete(businesses).run();
-  db.delete(scrapeJobs).run();
+  await db.delete(leadEvents);
+  await db.delete(leads);
+  await db.delete(businesses);
+  await db.delete(scrapeJobs);
   console.log("Cleared existing rows.");
 }
 
@@ -101,7 +95,7 @@ for (const [category, names] of Object.entries(NAMES)) {
       const areaName = pick(AREAS);
 
       const placeId = `demo_${category}_${created}`;
-      const inserted = db
+      const [inserted] = await db
         .insert(businesses)
         .values({
           placeId,
@@ -128,8 +122,7 @@ for (const [category, names] of Object.entries(NAMES)) {
           areaName,
         })
         .onConflictDoNothing()
-        .returning({ id: businesses.id })
-        .get();
+        .returning({ id: businesses.id });
 
       created++;
       if (!inserted || websiteClass === "has_website") continue;
@@ -137,7 +130,7 @@ for (const [category, names] of Object.entries(NAMES)) {
       const status = pick(STATUSES);
       const quoted = ["demo_built", "contacted", "negotiating", "won", "lost"].includes(status);
 
-      const lead = db
+      const [lead] = await db
         .insert(leads)
         .values({
           businessId: inserted.id,
@@ -146,24 +139,20 @@ for (const [category, names] of Object.entries(NAMES)) {
           demoUrl: quoted ? `https://demo.example.com/${placeId}` : null,
           notes: status === "negotiating" ? "Quiere ver otro diseño antes de decidir." : null,
         })
-        .returning({ id: leads.id })
-        .get();
+        .returning({ id: leads.id });
 
-      db.insert(leadEvents)
-        .values({
+      await db.insert(leadEvents).values({
           leadId: lead.id,
           type: "created",
           message: `Found in ${areaName} while searching "${category}".`,
-        })
-        .run();
+      });
 
       leadCount++;
     }
   }
 }
 
-db.insert(scrapeJobs)
-  .values({
+await db.insert(scrapeJobs).values({
     areaName: "DEMO · Madrid · Centro",
     params: JSON.stringify({ demo: true }),
     status: "completed",
@@ -171,16 +160,23 @@ db.insert(scrapeJobs)
     cellsDone: 25,
     requestsMade: 41,
     estimatedCostUsd: 1.435,
+    // More results than businesses: overlapping cells return the same place
+    // twice. Demo jobs are excluded from the free-tier meter on the Overview,
+    // so these fake requests never show up as spend.
+    resultsSeen: Math.round(created * 1.4),
     businessesFound: created,
     newBusinesses: created,
     leadsCreated: leadCount,
     startedAt: new Date(Date.now() - 240_000),
     finishedAt: new Date(),
-  })
-  .run();
+});
 
 console.log(`Seeded ${created} demo businesses and ${leadCount} demo leads.`);
 console.log('They are tagged "DEMO ·" in the area column. Re-run with --reset to clear.');
 console.log("");
 console.log("This script only fills the database — it does not start the app.");
 console.log("Next:  npm run dev     then open http://localhost:3000");
+
+// Postgres keeps the pool open, so without this the script seeds successfully
+// and then hangs instead of exiting.
+await client.end();

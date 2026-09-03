@@ -18,12 +18,11 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export default async function ScrapePage() {
-  const jobs = db
+  const jobs = await db
     .select()
     .from(scrapeJobs)
     .orderBy(desc(scrapeJobs.createdAt))
-    .limit(10)
-    .all();
+    .limit(10);
 
   return (
     <>

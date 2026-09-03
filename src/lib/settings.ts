@@ -20,6 +20,12 @@ export type AppSettings = {
   whatsappTemplate: string;
   /** Extra domains to treat as "not a real website", one per line. */
   extraAggregatorDomains: string;
+  /**
+   * How long a cell × category search counts as already covered. Re-running an
+   * area inside this window skips those searches instead of paying for them
+   * again. 0 disables the cache and always sweeps everything.
+   */
+  coverageTtlDays: number;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -31,10 +37,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   emailTemplate: DEFAULT_EMAIL_TEMPLATE,
   whatsappTemplate: DEFAULT_WHATSAPP_TEMPLATE,
   extraAggregatorDomains: "",
+  coverageTtlDays: 30,
 };
 
-export function getSettings(): AppSettings {
-  const rows = db.select().from(settings).all();
+export async function getSettings(): Promise<AppSettings> {
+  const rows = await db.select().from(settings);
   const stored = Object.fromEntries(rows.map((row) => [row.key, row.value]));
 
   return {
@@ -49,30 +56,46 @@ export function getSettings(): AppSettings {
     whatsappTemplate: stored.whatsappTemplate ?? DEFAULT_SETTINGS.whatsappTemplate,
     extraAggregatorDomains:
       stored.extraAggregatorDomains ?? DEFAULT_SETTINGS.extraAggregatorDomains,
+    coverageTtlDays: stored.coverageTtlDays
+      ? Number(stored.coverageTtlDays)
+      : DEFAULT_SETTINGS.coverageTtlDays,
   };
 }
 
-export function saveSettings(values: Partial<Record<keyof AppSettings, string>>): void {
+/**
+ * Searches swept on or after this instant count as already covered. `null` when
+ * the cache is switched off, which means sweep everything.
+ */
+export async function coverageCutoff(): Promise<Date | null> {
+  const { coverageTtlDays: days } = await getSettings();
+  if (!Number.isFinite(days) || days <= 0) return null;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+export async function saveSettings(
+  values: Partial<Record<keyof AppSettings, string>>,
+): Promise<void> {
   for (const [key, value] of Object.entries(values)) {
     if (value == null) continue;
-    db.insert(settings)
+    await db
+      .insert(settings)
       .values({ key, value, updatedAt: new Date() })
       .onConflictDoUpdate({
         target: settings.key,
         set: { value, updatedAt: new Date() },
-      })
-      .run();
+      });
   }
 }
 
 /** User-added domains, merged into the classifier's aggregator list. */
-export function extraDomains(): string[] {
-  return getSettings()
-    .extraAggregatorDomains.split(/[\s,]+/)
+export async function extraDomains(): Promise<string[]> {
+  const { extraAggregatorDomains } = await getSettings();
+  return extraAggregatorDomains
+    .split(/[\s,]+/)
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
 }
 
-export function clearSetting(key: keyof AppSettings): void {
-  db.delete(settings).where(eq(settings.key, key)).run();
+export async function clearSetting(key: keyof AppSettings): Promise<void> {
+  await db.delete(settings).where(eq(settings.key, key));
 }

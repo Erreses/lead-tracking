@@ -129,6 +129,43 @@ export function subdivide(cell: Cell): Cell[] {
   ];
 }
 
+export type LatLngRectangle = {
+  low: { latitude: number; longitude: number };
+  high: { latitude: number; longitude: number };
+};
+
+const clampLat = (value: number) => Math.min(90, Math.max(-90, value));
+/** Wrap into [-180, 180]; a cell near the antimeridian must not send ±181. */
+const wrapLng = (value: number) => ((((value + 180) % 360) + 360) % 360) - 180;
+
+/**
+ * The smallest lat/lng rectangle containing a circular cell.
+ *
+ * Text Search accepts only a rectangle for `locationRestriction` — passing a
+ * circle is rejected with a 400, which is why every request this scraper ever
+ * sent failed. The *bounding* box is used rather than an inscribed square
+ * because it contains the circle: everything the lattice proves about circular
+ * coverage stays true of what is actually queried. The price is a little more
+ * overlap (4/π ≈ 1.27× the area per cell), never a gap.
+ */
+export function circleToRectangle(
+  cell: Pick<Cell, "lat" | "lng" | "radius">,
+): LatLngRectangle {
+  const dLat = metersToLatDegrees(cell.radius);
+  const dLng = metersToLngDegrees(cell.radius, cell.lat);
+
+  return {
+    low: {
+      latitude: clampLat(cell.lat - dLat),
+      longitude: wrapLng(cell.lng - dLng),
+    },
+    high: {
+      latitude: clampLat(cell.lat + dLat),
+      longitude: wrapLng(cell.lng + dLng),
+    },
+  };
+}
+
 /** Is `point` inside `cell`? Used by the coverage tests. */
 export function cellCovers(cell: Cell, point: { lat: number; lng: number }): boolean {
   return haversine(cell, point) <= cell.radius;

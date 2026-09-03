@@ -13,6 +13,7 @@ const settingsSchema = z.object({
   emailTemplate: z.string().max(10_000).optional(),
   whatsappTemplate: z.string().max(4000).optional(),
   extraAggregatorDomains: z.string().max(10_000).optional(),
+  coverageTtlDays: z.string().max(6).optional(),
 });
 
 export async function GET() {

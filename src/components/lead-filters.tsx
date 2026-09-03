@@ -18,14 +18,6 @@ const STATUS_LABELS: Record<string, string> = {
   discarded: "Discarded",
 };
 
-const SORTS = [
-  { value: "score", label: "Best first" },
-  { value: "reviews", label: "Most reviews" },
-  { value: "rating", label: "Highest rated" },
-  { value: "name", label: "Name" },
-  { value: "recent", label: "Recently found" },
-];
-
 export function LeadFilters({ areas }: { areas: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -135,19 +127,8 @@ export function LeadFilters({ areas }: { areas: string[] }) {
           </select>
         ) : null}
 
-        <select
-          value={params.get("sort") ?? "score"}
-          onChange={(e) => apply({ sort: e.target.value })}
-          aria-label="Sort leads"
-          className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-sm"
-        >
-          {SORTS.map((sort) => (
-            <option key={sort.value} value={sort.value}>
-              {sort.label}
-            </option>
-          ))}
-        </select>
-
+        {/* Sorting lives on the table headers now — one control, not two that
+            can disagree. */}
         <label className="flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-sm text-ink-secondary">
           <input
             type="checkbox"

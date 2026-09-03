@@ -14,6 +14,7 @@ type Settings = {
   emailTemplate: string;
   whatsappTemplate: string;
   extraAggregatorDomains: string;
+  coverageTtlDays: number;
 };
 
 const field =
@@ -49,6 +50,7 @@ export function SettingsForm({
         body: JSON.stringify({
           ...values,
           defaultQuote: String(values.defaultQuote),
+          coverageTtlDays: String(values.coverageTtlDays),
         }),
       });
       const data = await res.json();
@@ -206,6 +208,28 @@ export function SettingsForm({
           placeholder={"midirectorio.es\nguialocal.es"}
           className={`${field} resize-y font-mono text-xs`}
         />
+      </section>
+
+      <section className="rounded-xl border border-line bg-card p-5">
+        <h2 className="text-sm font-semibold tracking-tight">Scrape coverage window</h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          Google bills per request and can&apos;t be told to skip businesses you already
+          have, so the only way to make a repeat sweep cheaper is not to search the same
+          patch twice. A search counts as covered for this many days; re-running an area
+          inside the window skips those searches instead of paying for them again. Set to
+          0 to always sweep everything.
+        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            max={365}
+            value={values.coverageTtlDays}
+            onChange={(e) => set("coverageTtlDays", Number(e.target.value) || 0)}
+            className={`${field} tnum w-24`}
+          />
+          <span className="text-xs text-ink-muted">days</span>
+        </div>
       </section>
 
       <div className="flex items-center gap-3">

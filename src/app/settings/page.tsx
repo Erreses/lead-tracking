@@ -10,20 +10,19 @@ import { getSettings } from "@/lib/settings";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const settings = getSettings();
+  const settings = await getSettings();
   const keyPresent = hasApiKey();
 
-  const uncheckedCount =
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(businesses)
-      .where(
-        and(
-          inArray(businesses.websiteClass, ["has_website", "builder_subdomain"]),
-          eq(businesses.websiteStatus, "unchecked"),
-        ),
-      )
-      .get()?.count ?? 0;
+  const [uncheckedRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(businesses)
+    .where(
+      and(
+        inArray(businesses.websiteClass, ["has_website", "builder_subdomain"]),
+        eq(businesses.websiteStatus, "unchecked"),
+      ),
+    );
+  const uncheckedCount = uncheckedRow?.count ?? 0;
 
   return (
     <>

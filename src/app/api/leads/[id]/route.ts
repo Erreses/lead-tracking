@@ -33,7 +33,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/leads/[id]
     );
   }
 
-  const existing = db.select().from(leads).where(eq(leads.id, leadId)).get();
+  const [existing] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
   if (!existing) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
 
   const patch = parsed.data;
@@ -48,27 +48,25 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/leads/[id]
   }
   if (patch.markContacted) update.contactedAt = new Date();
 
-  db.update(leads).set(update).where(eq(leads.id, leadId)).run();
+  await db.update(leads).set(update).where(eq(leads.id, leadId));
 
   // Status moves are the spine of the timeline, so record them explicitly.
   if (patch.status && patch.status !== existing.status) {
-    db.insert(leadEvents)
-      .values({
-        leadId,
-        type: "status_change",
-        message: `${existing.status} → ${patch.status}`,
-      })
-      .run();
+    await db.insert(leadEvents).values({
+      leadId,
+      type: "status_change",
+      message: `${existing.status} → ${patch.status}`,
+    });
   }
 
   if (patch.markContacted) {
-    db.insert(leadEvents)
-      .values({ leadId, type: "outreach_sent", message: patch.event ?? "Outreach sent" })
-      .run();
+    await db
+      .insert(leadEvents)
+      .values({ leadId, type: "outreach_sent", message: patch.event ?? "Outreach sent" });
   } else if (patch.event) {
-    db.insert(leadEvents).values({ leadId, type: "note", message: patch.event }).run();
+    await db.insert(leadEvents).values({ leadId, type: "note", message: patch.event });
   }
 
-  const updated = db.select().from(leads).where(eq(leads.id, leadId)).get();
+  const [updated] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
   return NextResponse.json({ lead: updated });
 }

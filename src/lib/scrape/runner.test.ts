@@ -2,7 +2,14 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@/lib/db";
-import { businesses, leadEvents, leads, scrapeJobs } from "@/lib/db/schema";
+import {
+  businesses,
+  cellCoverage,
+  leadEvents,
+  leads,
+  scrapeJobs,
+  settings,
+} from "@/lib/db/schema";
 import { runJob, type JobParams } from "./runner";
 
 /**
@@ -84,7 +91,34 @@ function stubFetch(saturateAbove = Infinity) {
   vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
     requestCount++;
     const body = JSON.parse(String(init.body));
-    const { center, radius } = body.locationRestriction.circle;
+
+    // Answer a wrong-shaped request the way Google does, instead of throwing.
+    // A throwing stub sends the client into its retry backoff and the test dies
+    // of a timeout — which says nothing about what was actually wrong.
+    if (!body.locationRestriction?.rectangle) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              status: "INVALID_ARGUMENT",
+              message: `Invalid JSON payload received. Unknown name "${
+                Object.keys(body.locationRestriction ?? {})[0] ?? "?"
+              }" at 'location_restriction': Cannot find field.`,
+            },
+          }),
+      } as unknown as Response;
+    }
+
+    // The rectangle is the cell circle's bounding box, so the centre is its
+    // midpoint and the radius is half its latitude span.
+    const { low, high } = body.locationRestriction.rectangle;
+    const center = {
+      latitude: (low.latitude + high.latitude) / 2,
+      longitude: (low.longitude + high.longitude) / 2,
+    };
+    const radius = ((high.latitude - low.latitude) / 2) * 111_320;
     const cellKey = `${center.latitude.toFixed(4)}_${center.longitude.toFixed(4)}_${Math.round(radius)}`;
 
     if (radius > saturateAbove) {
@@ -104,16 +138,28 @@ function stubFetch(saturateAbove = Infinity) {
   });
 }
 
-function createJob(params: JobParams) {
-  return db
+async function createJob(params: JobParams) {
+  const [row] = await db
     .insert(scrapeJobs)
     .values({
       areaName: params.areaLabel,
       params: JSON.stringify(params),
       status: "pending",
     })
-    .returning({ id: scrapeJobs.id })
-    .get().id;
+    .returning({ id: scrapeJobs.id });
+
+  return row.id;
+}
+
+/** First row of a query, for the many places a test expects exactly one. */
+async function first<T>(query: PromiseLike<T[]>): Promise<T> {
+  const [row] = await query;
+  return row;
+}
+
+/** The job row under test, re-read after the run finished. */
+function jobRow(id: number) {
+  return first(db.select().from(scrapeJobs).where(eq(scrapeJobs.id, id)));
 }
 
 const BASE: JobParams = {
@@ -129,11 +175,15 @@ const BASE: JobParams = {
   maxRequests: 100,
 };
 
-function reset() {
-  db.delete(leadEvents).run();
-  db.delete(leads).run();
-  db.delete(businesses).run();
-  db.delete(scrapeJobs).run();
+async function reset() {
+  await db.delete(leadEvents);
+  await db.delete(leads);
+  await db.delete(businesses);
+  await db.delete(scrapeJobs);
+  // Coverage outlives a job by design, so it has to be cleared explicitly or
+  // every test after the first would skip its searches as already swept.
+  await db.delete(cellCoverage);
+  await db.delete(settings);
 }
 
 beforeEach(reset);
@@ -144,17 +194,17 @@ afterEach(() => {
 describe("runJob", () => {
   it("stores every business but only creates leads for those without a real website", async () => {
     stubFetch();
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(job.status).toBe("completed");
 
-    const allBusinesses = db.select().from(businesses).all();
+    const allBusinesses = await db.select().from(businesses);
     expect(allBusinesses).toHaveLength(5);
 
     // 4 of the 5 lack a site of their own; only "Salón Con Web" has one.
-    const allLeads = db.select().from(leads).all();
+    const allLeads = await db.select().from(leads);
     expect(allLeads).toHaveLength(4);
     expect(job.leadsCreated).toBe(4);
 
@@ -174,19 +224,15 @@ describe("runJob", () => {
 
   it("scores the busiest reachable lead above the quiet ones", async () => {
     stubFetch();
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
 
-    const noWebsite = db
-      .select()
-      .from(businesses)
-      .where(eq(businesses.websiteClass, "none"))
-      .get()!;
-    const googleSite = db
-      .select()
-      .from(businesses)
-      .where(eq(businesses.websiteClass, "google_site"))
-      .get()!;
+    const noWebsite = await first(
+      db.select().from(businesses).where(eq(businesses.websiteClass, "none")),
+    );
+    const googleSite = await first(
+      db.select().from(businesses).where(eq(businesses.websiteClass, "google_site")),
+    );
 
     // 120 reviews + 4.6 rating + a phone number beats a bare listing.
     expect(noWebsite.leadScore).toBeGreaterThan(googleSite.leadScore);
@@ -194,10 +240,10 @@ describe("runJob", () => {
 
   it("records why each lead was created", async () => {
     stubFetch();
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
 
-    const events = db.select().from(leadEvents).all();
+    const events = await db.select().from(leadEvents);
     expect(events).toHaveLength(4);
     expect(events[0].type).toBe("created");
     expect(events[0].message).toContain("Test Area");
@@ -205,16 +251,19 @@ describe("runJob", () => {
 
   it("deduplicates on re-scrape instead of piling up copies", async () => {
     stubFetch();
-    const first = createJob(BASE);
-    await runJob(first, BASE);
+    const firstJob = await createJob(BASE);
+    await runJob(firstJob, BASE);
 
-    const second = createJob(BASE);
-    await runJob(second, BASE);
+    // Forced, because the coverage cache would otherwise skip the second sweep
+    // entirely — and what's under test here is what happens when it does run.
+    const rescrape: JobParams = { ...BASE, force: true };
+    const second = await createJob(rescrape);
+    await runJob(second, rescrape);
 
-    expect(db.select().from(businesses).all()).toHaveLength(5);
-    expect(db.select().from(leads).all()).toHaveLength(4);
+    expect(await db.select().from(businesses)).toHaveLength(5);
+    expect(await db.select().from(leads)).toHaveLength(4);
 
-    const secondJob = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, second)).get()!;
+    const secondJob = await jobRow(second);
     expect(secondJob.businessesFound).toBe(5);
     expect(secondJob.newBusinesses).toBe(0);
     expect(secondJob.leadsCreated).toBe(0);
@@ -230,10 +279,10 @@ describe("runJob", () => {
       maxDepth: 1,
       maxRequests: 200,
     };
-    const jobId = createJob(params);
+    const jobId = await createJob(params);
     await runJob(jobId, params);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(job.status).toBe("completed");
     // One parent cell plus the four children it split into.
     expect(job.cellsTotal).toBe(5);
@@ -253,10 +302,10 @@ describe("runJob", () => {
       maxDepth: 1,
       maxRequests: 200,
     };
-    const jobId = createJob(params);
+    const jobId = await createJob(params);
     await runJob(jobId, params);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(job.saturatedCells).toBe(4);
   });
 
@@ -269,16 +318,16 @@ describe("runJob", () => {
       maxDepth: 2,
       maxRequests: 5,
     };
-    const jobId = createJob(params);
+    const jobId = await createJob(params);
     await runJob(jobId, params);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(job.stoppedReason).toContain("budget cap");
     // Workers finish the cell in hand, so a small overshoot past the cap is
     // expected — but it must be bounded, not unlimited.
     expect(job.requestsMade).toBeGreaterThanOrEqual(5);
     expect(job.requestsMade).toBeLessThan(5 + 4 * 3);
-    expect(db.select().from(businesses).all().length).toBeGreaterThan(0);
+    expect((await db.select().from(businesses)).length).toBeGreaterThan(0);
   });
 
   it("marks the job failed when the API keeps erroring", async () => {
@@ -289,10 +338,10 @@ describe("runJob", () => {
         JSON.stringify({ error: { message: "API key not authorized", status: "PERMISSION_DENIED" } }),
     }));
 
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(job.status).toBe("failed");
     expect(job.error).toContain("API key not authorized");
   });
@@ -318,23 +367,180 @@ describe("runJob", () => {
       return jsonResponse({ places: placesForCell("fallback") });
     });
 
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
 
-    const job = db.select().from(scrapeJobs).where(eq(scrapeJobs.id, jobId)).get()!;
+    const job = await jobRow(jobId);
     expect(sawIncludedType).toBe(true);
     expect(calls).toBe(2);
     // The cell was still swept, just as a plain text search.
     expect(job.status).toBe("completed");
-    expect(db.select().from(businesses).all()).toHaveLength(5);
+    expect(await db.select().from(businesses)).toHaveLength(5);
   });
 });
 
 describe("stub sanity", () => {
   it("counts the requests the runner actually made", async () => {
     stubFetch();
-    const jobId = createJob(BASE);
+    const jobId = await createJob(BASE);
     await runJob(jobId, BASE);
     expect(requestCount).toBe(1);
+  });
+});
+
+/**
+ * The coverage cache is the only thing that makes a repeat sweep cheaper —
+ * Google bills per request and can't be asked to skip places we already have.
+ * These check it actually stops requests going out, and never at the cost of
+ * leaving part of an area unsearched.
+ */
+describe("coverage cache", () => {
+  it("records every search it pays for", async () => {
+    stubFetch();
+    const jobId = await createJob(BASE);
+    await runJob(jobId, BASE);
+
+    const rows = await db.select().from(cellCoverage);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].categorySlug).toBe("peluqueria");
+    expect(rows[0].placesFound).toBe(5);
+    expect(rows[0].radius).toBe(400);
+  });
+
+  it("makes an immediate re-run free", async () => {
+    stubFetch();
+    await runJob(await createJob(BASE), BASE);
+    const afterFirst = requestCount;
+    expect(afterFirst).toBe(1);
+
+    const secondId = await createJob(BASE);
+    await runJob(secondId, BASE);
+
+    // Not one more request, and the job says why.
+    expect(requestCount).toBe(afterFirst);
+    const job = await jobRow(secondId);
+    expect(job.status).toBe("completed");
+    expect(job.cellsSkipped).toBe(1);
+    expect(job.requestsMade).toBe(0);
+    expect(job.estimatedCostUsd).toBe(0);
+  });
+
+  it("keeps the businesses the skipped run would have found", async () => {
+    stubFetch();
+    await runJob(await createJob(BASE), BASE);
+    const before = (await db.select().from(businesses)).length;
+
+    await runJob(await createJob(BASE), BASE);
+
+    // Skipping a search must not remove anything already stored.
+    expect(await db.select().from(businesses)).toHaveLength(before);
+    expect(await db.select().from(leads)).toHaveLength(4);
+  });
+
+  it("re-sweeps at full price when forced", async () => {
+    stubFetch();
+    await runJob(await createJob(BASE), BASE);
+    const afterFirst = requestCount;
+
+    const forced = { ...BASE, force: true };
+    const jobId = await createJob(forced);
+    await runJob(jobId, forced);
+
+    expect(requestCount).toBe(afterFirst + 1);
+    const job = await jobRow(jobId);
+    expect(job.cellsSkipped).toBe(0);
+    expect(job.requestsMade).toBe(1);
+  });
+
+  it("sweeps again once the window has expired", async () => {
+    stubFetch();
+    await runJob(await createJob(BASE), BASE);
+    const afterFirst = requestCount;
+
+    // Backdate the sweep past the default 30-day window.
+    await db
+      .update(cellCoverage)
+      .set({ sweptAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000) });
+
+    await runJob(await createJob(BASE), BASE);
+    expect(requestCount).toBe(afterFirst + 1);
+  });
+
+  it("treats a coverage window of 0 as always sweep", async () => {
+    stubFetch();
+    await runJob(await createJob(BASE), BASE);
+    const afterFirst = requestCount;
+
+    await db.insert(settings).values({ key: "coverageTtlDays", value: "0" });
+
+    await runJob(await createJob(BASE), BASE);
+    expect(requestCount).toBe(afterFirst + 1);
+  });
+
+  it("treats a budget stop as a clean finish, not a failure", async () => {
+    // A cap that bites mid-flight used to abort the in-flight fetch, which
+    // surfaced as status "failed" with "This operation was aborted" — sending
+    // the user hunting for a bug when the job did exactly what it was told.
+    stubFetch();
+    const params: JobParams = {
+      ...BASE,
+      categories: ["peluqueria", "barberia", "restaurante"],
+      maxRequests: 1,
+    };
+    const jobId = await createJob(params);
+    await runJob(jobId, params);
+
+    const job = await jobRow(jobId);
+    expect(job.status).toBe("completed");
+    expect(job.error).toBeNull();
+    expect(job.stoppedReason).toContain("budget cap");
+    // The request that was already paid for still delivered its businesses.
+    expect(job.businessesFound).toBeGreaterThan(0);
+  });
+
+  it("does not mark a search truncated at 60 results as covered", async () => {
+    // The whole point of "re-run at a deeper level" is that it reaches these
+    // cells. Recording them as covered would make that advice do nothing.
+    stubFetch(0); // every cell saturates
+    const params: JobParams = { ...BASE, maxDepth: 0 };
+    const jobId = await createJob(params);
+    await runJob(jobId, params);
+
+    const job = await jobRow(jobId);
+    expect(job.saturatedCells).toBe(1);
+    expect(await db.select().from(cellCoverage)).toHaveLength(0);
+  });
+
+  it("lets a deeper re-run reach a cell that was truncated", async () => {
+    stubFetch(300); // the 400 m cell saturates; its 283 m children do not
+    const shallow: JobParams = { ...BASE, maxDepth: 0 };
+    await runJob(await createJob(shallow), shallow);
+    const afterShallow = requestCount;
+
+    const deeper: JobParams = { ...BASE, maxDepth: 1 };
+    const jobId = await createJob(deeper);
+    await runJob(jobId, deeper);
+
+    // It went back in rather than skipping, and this time it subdivided.
+    expect(requestCount).toBeGreaterThan(afterShallow);
+    const job = await jobRow(jobId);
+    expect(job.cellsSkipped).toBe(0);
+    expect(job.saturatedCells).toBe(0);
+  });
+
+  it("does not mark a budget-truncated search as covered", async () => {
+    // Two categories, budget of 1: the second never runs, so it must not be
+    // recorded — otherwise the window would hide it until it expired.
+    stubFetch();
+    const params: JobParams = {
+      ...BASE,
+      categories: ["peluqueria", "barberia"],
+      maxRequests: 1,
+    };
+    await runJob(await createJob(params), params);
+
+    const covered = await db.select().from(cellCoverage);
+    expect(covered).toHaveLength(1);
+    expect(covered[0].categorySlug).toBe("peluqueria");
   });
 });

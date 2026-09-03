@@ -5,17 +5,37 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AREAS, getArea } from "@/config/areas";
 import { CATEGORIES, CATEGORY_GROUPS, type Category } from "@/config/categories";
-import { defaultCellRadius } from "@/lib/scrape/params";
+import { COST_PER_REQUEST_USD, RESULTS_PER_REQUEST } from "@/lib/places/pricing";
+import { CELL_SIZES, defaultCellRadius } from "@/lib/scrape/params";
+import type { JobSummary, SuggestedParams } from "@/lib/scrape/summary";
+
+type FreeTier = {
+  limit: number;
+  used: number;
+  remaining: number;
+  covered: number;
+  billable: number;
+  minChargeUsd: number;
+  expectedChargeUsd: number;
+};
 
 type Estimate = {
   cells: number;
   categories: number;
+  maxDepth: number;
+  searches: number;
+  coveredSearches: number;
+  newSearches: number;
   minRequests: number;
   expectedRequests: number;
   minCostUsd: number;
   expectedCostUsd: number;
   suggestedMaxRequests: number;
   suggestedMaxCostUsd: number;
+  minResults: number;
+  expectedResults: number;
+  suggestedMaxResults: number;
+  freeTier: FreeTier;
 };
 
 type Job = {
@@ -26,23 +46,33 @@ type Job = {
   cellsDone: number;
   requestsMade: number;
   estimatedCostUsd: number;
+  resultsSeen: number;
   businessesFound: number;
   newBusinesses: number;
   leadsCreated: number;
   saturatedCells: number;
+  cellsSkipped: number;
   stoppedReason: string | null;
   error: string | null;
 };
 
-const CELL_SIZES = [
-  { value: 2000, label: "2 km — cheapest sweep" },
-  { value: 1500, label: "1.5 km — balanced" },
-  { value: 1000, label: "1 km — thorough" },
-  { value: 800, label: "800 m — dense areas" },
-  { value: 500, label: "500 m — very dense" },
-];
+const num = (value: number) => value.toLocaleString("en-US");
 
 const TERMINAL = new Set(["completed", "failed", "cancelled", "interrupted"]);
+
+const SEVERITY_STYLE: Record<JobSummary["recommendations"][number]["severity"], string> = {
+  critical: "border-critical/40 bg-critical/5",
+  warning: "border-serious/40 bg-serious/5",
+  info: "border-line bg-card-muted",
+  good: "border-good/40 bg-good/5",
+};
+
+const SEVERITY_DOT: Record<JobSummary["recommendations"][number]["severity"], string> = {
+  critical: "bg-critical",
+  warning: "bg-serious",
+  info: "bg-ink-muted",
+  good: "bg-good",
+};
 
 const groupedCategories = Object.entries(CATEGORY_GROUPS).map(([group, label]) => ({
   group: group as Category["group"],
@@ -60,12 +90,16 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
   const [cellRadiusOverride, setCellRadiusOverride] = useState<number | null>(null);
   const [maxDepth, setMaxDepth] = useState(1);
   const [budget, setBudget] = useState<number | null>(null);
+  const [force, setForce] = useState(false);
+  const [backup, setBackup] = useState<string | null>(null);
 
   const [rawEstimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [job, setJob] = useState<Job | null>(null);
+  const [summary, setSummary] = useState<JobSummary | null>(null);
+  const [applied, setApplied] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -92,8 +126,17 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
       cellRadius,
       maxDepth,
       maxRequests: budget ?? estimate?.suggestedMaxRequests ?? 500,
+      force,
     }),
-    [areaSlug, selected, cellRadius, maxDepth, budget, estimate?.suggestedMaxRequests],
+    [
+      areaSlug,
+      selected,
+      cellRadius,
+      maxDepth,
+      budget,
+      force,
+      estimate?.suggestedMaxRequests,
+    ],
   );
 
   // Re-price whenever the shape of the job changes. Debounced so dragging
@@ -115,6 +158,7 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
             cellRadius,
             maxDepth,
             maxRequests: 1,
+            force,
           }),
         });
         const data = await res.json();
@@ -133,7 +177,7 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [areaSlug, selected, cellRadius, maxDepth]);
+  }, [areaSlug, selected, cellRadius, maxDepth, force]);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -151,6 +195,7 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
           const data = await res.json();
           if (!res.ok) throw new Error(data.error ?? "Lost track of the job");
           setJob(data.job);
+          setSummary(data.summary ?? null);
           if (TERMINAL.has(data.job.status)) stopPolling();
         } catch (err) {
           setError(err instanceof Error ? err.message : String(err));
@@ -163,9 +208,23 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
 
   useEffect(() => stopPolling, [stopPolling]);
 
+  /**
+   * Load a recommendation's settings into the form. Deliberately does not start
+   * the run — the price changes, and you should see the new number first.
+   */
+  function applySuggestion(id: string, params: SuggestedParams) {
+    if (params.cellRadius != null) setCellRadiusOverride(params.cellRadius);
+    if (params.maxDepth != null) setMaxDepth(params.maxDepth);
+    if (params.maxRequests != null) setBudget(params.maxRequests);
+    if (params.force != null) setForce(params.force);
+    setApplied(id);
+  }
+
   async function start() {
     setStarting(true);
     setError(null);
+    setSummary(null);
+    setApplied(null);
     try {
       const res = await fetch("/api/jobs", {
         method: "POST",
@@ -175,18 +234,25 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start the scrape");
 
+      setBackup(data.backup ?? null);
+      if (data.backupError) {
+        setError(`Scrape started, but the safety backup failed: ${data.backupError}`);
+      }
+
       setJob({
         id: data.id,
         areaName: area?.label ?? areaSlug,
         status: "running",
-        cellsTotal: estimate?.cells ?? 0,
+        cellsTotal: estimate?.newSearches ?? 0,
         cellsDone: 0,
         requestsMade: 0,
         estimatedCostUsd: 0,
+        resultsSeen: 0,
         businessesFound: 0,
         newBusinesses: 0,
         leadsCreated: 0,
         saturatedCells: 0,
+        cellsSkipped: estimate?.coveredSearches ?? 0,
         stoppedReason: null,
         error: null,
       });
@@ -220,6 +286,7 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
   }
 
   const budgetValue = budget ?? estimate?.suggestedMaxRequests ?? 500;
+  const requestsLeft = Math.max(0, budgetValue - (job?.requestsMade ?? 0));
   const progress =
     job && job.cellsTotal > 0
       ? Math.min(100, (job.cellsDone / job.cellsTotal) * 100)
@@ -392,17 +459,60 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
                     <dt className="text-ink-secondary">Categories</dt>
                     <dd className="tnum font-medium">{selected.length}</dd>
                   </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-ink-secondary">Searches</dt>
+                    <dd className="tnum font-medium">
+                      {estimate ? num(estimate.searches) : "—"}
+                    </dd>
+                  </div>
+                  {/* Skipping what a recent run already covered is the only
+                      lever that makes a repeat sweep cheaper. */}
+                  {estimate && estimate.coveredSearches > 0 ? (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-ink-secondary">Already covered</dt>
+                      <dd className="tnum font-medium text-good">
+                        −{num(estimate.coveredSearches)} skipped
+                      </dd>
+                    </div>
+                  ) : null}
+
                   <div className="flex justify-between gap-3 border-t border-line pt-2.5">
                     <dt className="text-ink-secondary">Requests</dt>
                     <dd className="tnum font-medium">
-                      {estimate ? `${estimate.minRequests}–${estimate.expectedRequests}` : "—"}
+                      {estimate
+                        ? `${num(estimate.minRequests)}–${num(estimate.expectedRequests)}`
+                        : "—"}
+                    </dd>
+                  </div>
+                  {/* Requests are what you buy; businesses are what you want. */}
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-ink-secondary">Businesses reachable</dt>
+                    <dd className="tnum font-medium">
+                      {estimate ? `up to ${num(estimate.expectedResults)}` : "—"}
+                    </dd>
+                  </div>
+
+                  <div className="flex justify-between gap-3 border-t border-line pt-2.5">
+                    <dt className="text-ink-secondary">Free requests left</dt>
+                    <dd className="tnum font-medium">
+                      {estimate
+                        ? `${num(estimate.freeTier.remaining)} of ${num(estimate.freeTier.limit)}`
+                        : "—"}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-ink-secondary">Estimated cost</dt>
-                    <dd className="tnum font-semibold">
+                    <dt className="text-ink-secondary">You&apos;d be charged</dt>
+                    <dd
+                      className={`tnum font-semibold ${
+                        estimate && estimate.freeTier.expectedChargeUsd === 0
+                          ? "text-good"
+                          : ""
+                      }`}
+                    >
                       {estimate
-                        ? `$${estimate.minCostUsd.toFixed(2)}–$${estimate.expectedCostUsd.toFixed(2)}`
+                        ? estimate.freeTier.expectedChargeUsd === 0
+                          ? "$0.00"
+                          : `$${estimate.freeTier.minChargeUsd.toFixed(2)}–$${estimate.freeTier.expectedChargeUsd.toFixed(2)}`
                         : "—"}
                     </dd>
                   </div>
@@ -410,7 +520,22 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
 
                 <p className="mt-3 text-xs text-ink-muted">
                   Text Search Enterprise is $35 per 1,000 requests, and the first 1,000
-                  each month are free. Each request returns up to 20 businesses.
+                  each month are free. Each request returns up to{" "}
+                  {RESULTS_PER_REQUEST} businesses.
+                  {estimate ? (
+                    <>
+                      {" "}
+                      This sweep is{" "}
+                      <span className="tnum">
+                        ${estimate.minCostUsd.toFixed(2)}–$
+                        {estimate.expectedCostUsd.toFixed(2)}
+                      </span>{" "}
+                      at list price
+                      {estimate.freeTier.expectedChargeUsd === 0
+                        ? ", covered by this month's free allowance."
+                        : `, of which ${num(estimate.freeTier.covered)} requests are free.`}
+                    </>
+                  ) : null}
                 </p>
 
                 <div className="mt-4 border-t border-line pt-4">
@@ -428,12 +553,30 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
                       className="tnum w-24 rounded-lg border border-line bg-card px-2.5 py-1.5 text-sm disabled:opacity-60"
                     />
                     <span className="text-xs text-ink-muted">
-                      requests (${(budgetValue * 0.035).toFixed(2)} max)
+                      requests (${(budgetValue * COST_PER_REQUEST_USD).toFixed(2)} max)
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">
-                    A hard cap. The job stops cleanly here and keeps everything it found.
+                    A hard cap, worth up to {num(budgetValue * RESULTS_PER_REQUEST)}{" "}
+                    businesses. The job stops cleanly here and keeps everything it found.
                   </p>
+
+                  <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={force}
+                      onChange={(e) => setForce(e.target.checked)}
+                      disabled={running}
+                      className="mt-0.5 accent-[var(--accent)] disabled:opacity-60"
+                    />
+                    <span className="text-ink-secondary">
+                      Re-sweep everything
+                      <span className="block text-ink-muted">
+                        Ignore what recent runs already covered and pay for it again.
+                        Use when listings may have changed.
+                      </span>
+                    </span>
+                  </label>
                 </div>
               </>
             )}
@@ -484,33 +627,74 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
                 />
               </div>
               <p className="mt-1.5 text-xs text-ink-muted">
-                {job.cellsDone} of {job.cellsTotal} cells
-                {job.cellsTotal > (estimate?.cells ?? 0) * selected.length
+                {job.cellsDone} of {job.cellsTotal} searches
+                {job.cellsTotal > (estimate?.newSearches ?? 0)
                   ? " (grew from subdividing dense cells)"
+                  : ""}
+                {job.cellsSkipped > 0
+                  ? ` · ${num(job.cellsSkipped)} skipped as already covered, saving $${(
+                      job.cellsSkipped * COST_PER_REQUEST_USD
+                    ).toFixed(2)}+`
                   : ""}
               </p>
 
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <dt className="text-xs text-ink-muted">Businesses</dt>
-                  <dd className="tnum font-semibold">{job.businessesFound}</dd>
+                  <dd className="tnum font-semibold">{num(job.businessesFound)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-ink-muted">New leads</dt>
-                  <dd className="tnum font-semibold text-accent">{job.leadsCreated}</dd>
+                  <dd className="tnum font-semibold text-accent">
+                    {num(job.leadsCreated)}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-ink-muted">Requests</dt>
-                  <dd className="tnum font-semibold">{job.requestsMade}</dd>
+                  <dd className="tnum font-semibold">
+                    {num(job.requestsMade)}
+                    <span className="font-normal text-ink-muted">
+                      {" "}
+                      / {num(budgetValue)}
+                    </span>
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-ink-muted">Spent</dt>
+                  <dt className="text-xs text-ink-muted">List price</dt>
                   <dd className="tnum font-semibold">
                     ${job.estimatedCostUsd.toFixed(2)}
                   </dd>
                 </div>
               </dl>
 
+              {/* What the budget still buys, and how much of each request it's
+                  actually using. A run averaging 3 of a possible 20 results per
+                  request is paying full price for near-empty pages. */}
+              <p className="mt-3 border-t border-line pt-3 text-xs text-ink-muted">
+                {requestsLeft > 0
+                  ? `${num(requestsLeft)} requests left in the budget — room for up to ${num(
+                      requestsLeft * RESULTS_PER_REQUEST,
+                    )} more businesses.`
+                  : "Budget spent."}
+                {job.requestsMade > 0
+                  ? ` Averaging ${(job.resultsSeen / job.requestsMade).toFixed(1)} of ${RESULTS_PER_REQUEST} results per request.`
+                  : ""}
+              </p>
+              {job.resultsSeen > job.businessesFound ? (
+                <p className="mt-1 text-xs text-ink-muted">
+                  {num(job.resultsSeen)} results returned,{" "}
+                  {num(job.businessesFound)} distinct businesses — cells overlap and
+                  a business can match several categories.
+                </p>
+              ) : null}
+
+              {backup ? (
+                <p className="mt-3 text-xs text-ink-muted">
+                  Database backed up to{" "}
+                  <code className="font-mono">data/backups/{backup}</code> before this
+                  run.
+                </p>
+              ) : null}
               {job.stoppedReason ? (
                 <p className="mt-3 text-xs text-ink-muted">{job.stoppedReason}</p>
               ) : null}
@@ -533,6 +717,95 @@ export function ScrapeForm({ hasApiKey }: { hasApiKey: boolean }) {
                   See {job.leadsCreated} new leads
                 </Link>
               ) : null}
+            </div>
+          ) : null}
+
+          {/* What the run actually means, and what to do next. Only once it's
+              over — mid-run counters would give advice that contradicts itself
+              as the numbers move. */}
+          {summary ? (
+            <div className="mt-5 rounded-xl border border-line bg-card p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold tracking-tight">Results</h2>
+                {summary.needsRerun ? (
+                  <span className="rounded-full bg-serious/10 px-2 py-0.5 text-xs font-medium text-serious">
+                    Re-run suggested
+                  </span>
+                ) : summary.outcome === "completed" ? (
+                  <span className="rounded-full bg-good/10 px-2 py-0.5 text-xs font-medium text-good">
+                    Complete
+                  </span>
+                ) : null}
+              </div>
+
+              <p className="mt-2 text-sm text-ink-secondary">{summary.headline}</p>
+
+              <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 text-sm">
+                <div>
+                  <dt className="text-xs text-ink-muted">Results/request</dt>
+                  <dd className="tnum font-semibold">
+                    {summary.resultsPerRequest}
+                    <span className="font-normal text-ink-muted">
+                      {" "}
+                      / {RESULTS_PER_REQUEST}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-muted">Lead rate</dt>
+                  <dd className="tnum font-semibold">{summary.leadRate}%</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-muted">Cost/lead</dt>
+                  <dd className="tnum font-semibold">
+                    {summary.costPerLeadUsd == null
+                      ? "—"
+                      : `$${summary.costPerLeadUsd.toFixed(3)}`}
+                  </dd>
+                </div>
+              </dl>
+
+              {summary.recommendations.length > 0 ? (
+                <ul className="mt-4 space-y-2.5">
+                  {summary.recommendations.map((item) => (
+                    <li
+                      key={item.id}
+                      className={`rounded-lg border px-3 py-2.5 ${SEVERITY_STYLE[item.severity]}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                            SEVERITY_DOT[item.severity]
+                          }`}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium">{item.title}</p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+                            {item.detail}
+                          </p>
+                          {item.apply ? (
+                            <button
+                              type="button"
+                              onClick={() => applySuggestion(item.id, item.apply!)}
+                              disabled={running}
+                              className="mt-2 rounded-lg border border-line-strong px-2.5 py-1 text-xs font-medium transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+                            >
+                              {applied === item.id
+                                ? "Applied — check the price above"
+                                : (item.applyLabel ?? "Use these settings")}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-xs text-ink-muted">
+                  Nothing to flag — coverage was complete and the spend was
+                  proportionate.
+                </p>
+              )}
             </div>
           ) : null}
         </div>

@@ -1,0 +1,28 @@
+# Local Postgres for development, so you can work without touching the VPS.
+#
+#   docker compose up -d
+#   DATABASE_URL=postgres://lead_tracking:lead_tracking@localhost:5432/lead_tracking
+#
+# Production runs on Coolify, which provisions its own Postgres — this file is
+# only ever for your machine, which is why the credentials are throwaway.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: lead-tracking-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lead_tracking
+      POSTGRES_PASSWORD: lead_tracking
+      POSTGRES_DB: lead_tracking
+    ports:
+      - "5432:5432"
+    volumes:
+      - lead-tracking-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lead_tracking -d lead_tracking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lead-tracking-pgdata:
