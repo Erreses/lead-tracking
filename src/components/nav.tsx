@@ -10,11 +10,15 @@ const LINKS = [
   { href: "/settings", label: "Settings" },
 ] as const;
 
-export function Nav() {
+export function Nav({ showSignOut = false }: { showSignOut?: boolean }) {
   const pathname = usePathname();
 
+  // The login page is the one screen you reach without being signed in, and
+  // every link here would bounce straight back to it.
+  if (pathname === "/login") return null;
+
   return (
-    <nav className="shrink-0 border-line bg-card lg:w-56 lg:border-r border-b lg:border-b-0">
+    <nav className="shrink-0 border-line bg-card lg:flex lg:flex-col lg:w-56 lg:border-r border-b lg:border-b-0">
       <div className="flex items-center gap-2 px-5 py-4 lg:py-5">
         <span
           aria-hidden
@@ -47,6 +51,19 @@ export function Nav() {
           );
         })}
       </ul>
+
+      {/* Only when a password is actually configured — locally there is no
+          session to end, so the button would do nothing. */}
+      {showSignOut ? (
+        <form action="/api/logout" method="post" className="px-3 pb-4 lg:mt-auto">
+          <button
+            type="submit"
+            className="w-full rounded-md px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-card-muted hover:text-ink"
+          >
+            Sign out
+          </button>
+        </form>
+      ) : null}
     </nav>
   );
 }

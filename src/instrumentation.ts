@@ -1,19 +1,14 @@
 /**
  * Runs once when the server process starts.
  *
- * Scrape jobs live in the server process, so a job still marked `running` in the
- * database belongs to a process that no longer exists. Without this sweep the
- * dashboard would show a progress bar that never moves again.
+ * Next calls `register` in every runtime, so the actual work lives in
+ * `instrumentation-node.ts` behind a positive runtime check. Written this way
+ * on purpose: with an early `return` for non-Node runtimes the bundler still
+ * has to pull the Node-only module into the Edge bundle, and complains about
+ * every `process.exit` and `fs` call it finds there.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
-
-  const { recoverInterruptedJobs } = await import("@/lib/scrape/runner");
-  const recovered = recoverInterruptedJobs();
-
-  if (recovered > 0) {
-    console.log(
-      `[lead-tracking] Marked ${recovered} interrupted scrape job(s) from a previous run.`,
-    );
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./instrumentation-node");
   }
 }

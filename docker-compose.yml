@@ -1,0 +1,69 @@
+# Production stack for Coolify.
+#
+# Two containers on Coolify's private network: the dashboard, and a Postgres
+# that is never published. `postgres` has no `ports:` section on purpose — the
+# only route to your leads is through the app, behind its password.
+#
+# `SERVICE_FQDN_APP_3000` and `SERVICE_PASSWORD_POSTGRES` are Coolify magic
+# variables. On the first deploy Coolify allocates a domain and generates a
+# database password, then keeps both stable across redeploys. See DEPLOY.md.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify substitutes a real hostname here and points its proxy at :3000.
+      - SERVICE_FQDN_APP_3000
+      # Plaintext is correct on a private Docker network — there is no hop for
+      # anyone to sit on, and TLS to a sidecar would only cost handshakes.
+      - DATABASE_URL=postgres://lead_tracking:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/lead_tracking
+      - DATABASE_SSL=disable
+      # Set these two yourself in Coolify's environment editor.
+      - APP_ACCESS_PASSWORD=${APP_ACCESS_PASSWORD:?set a password in Coolify}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      # Pre-scrape backups and the JSONL log. Outlives redeploys.
+      - lead-tracking-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Hits the database, so a container that is listening but can't reach
+      # Postgres is reported unhealthy rather than being sent traffic.
+      test:
+        ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # Generous: the first boot runs migrations before it starts listening.
+      start_period: 60s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      # Bound to the VPS's loopback, not to its public interface. Nothing off
+      # the machine can reach this — the only way in is an SSH tunnel, which
+      # already requires a key. It exists so you can point a local `npm run dev`
+      # or a psql session at the real data without publishing the database.
+      #
+      # Removing this line costs nothing but that convenience.
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_USER=lead_tracking
+      - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
+      - POSTGRES_DB=lead_tracking
+    volumes:
+      - lead-tracking-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lead_tracking -d lead_tracking"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lead-tracking-pgdata:
+  lead-tracking-data:

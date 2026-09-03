@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Nav } from "@/components/nav";
+import { accessPassword } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full">
         <div className="flex min-h-screen flex-col lg:flex-row">
-          <Nav />
+          <Nav showSignOut={accessPassword() !== null} />
           <main className="min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8">
             <div className="mx-auto w-full max-w-6xl">{children}</div>
           </main>
