@@ -18,24 +18,41 @@ makes local development against the real data possible.
 
 ## 1. Push the branch
 
-Coolify deploys from Git, so the code has to be somewhere it can reach.
+Coolify builds from Git, so the code has to be somewhere it can reach. Already
+done, but for future changes:
 
 ```bash
-git push -u origin claude/google-maps-scraper-dashboard-3w3qto
+git push origin claude/google-maps-scraper-dashboard-3w3qto
 ```
 
-A private repo is fine — you will connect it with a deploy key or the GitHub App
-in the next step.
+Pushing is also how you deploy: Coolify rebuilds on each push once the resource
+below is set up.
 
 ## 2. Create the resource
 
-In Coolify: **Project → New Resource → Docker Compose**.
+In Coolify: **Project → New Resource → Public Repository**.
 
-- **Source**: your repository, branch as above
-- **Compose file**: `docker-compose.yml`
-- **Build pack**: Docker Compose
+> **Not the one called "Docker Compose".** That resource takes a compose file
+> pasted into a text box and can only pull prebuilt images from a registry — it
+> never sees your repository, so the `build:` section here has nothing to build
+> from. The Git-backed resource is the one that clones the repo and builds.
 
-Coolify reads the compose file and finds two services, `app` and `postgres`.
+Fill in:
+
+| Field | Value |
+| --- | --- |
+| Repository URL | `https://github.com/Erreses/lead-tracking` |
+| Branch | `claude/google-maps-scraper-dashboard-3w3qto` |
+| **Build Pack** | **Docker Compose** |
+| Docker Compose Location | `/docker-compose.yml` |
+
+The Build Pack dropdown is the part that matters — that is where "Docker
+Compose" belongs, not in the resource type. Coolify then reads the committed
+compose file and finds two services, `app` and `postgres`.
+
+If the repository is private, pick **Private Repository (with deploy key)**
+instead and add the key Coolify generates to the repo's Deploy Keys. Everything
+else is identical.
 
 ## 3. Set the environment variables
 
