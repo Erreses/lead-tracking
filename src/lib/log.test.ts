@@ -155,9 +155,16 @@ describe("levels and context", () => {
  * here has to end in "carry on".
  */
 describe("never throws", () => {
-  it("swallows an unwritable directory", () => {
+  it("swallows a directory it cannot create", () => {
+    // A plain file standing where the log directory's parent should be, so
+    // mkdir fails with ENOTDIR. That happens identically on every platform and
+    // whoever is running — unlike a permission bit, which root ignores, or a
+    // path under /proc, which hangs indefinitely on Linux rather than failing.
+    const blocker = path.join(dir, "not-a-directory");
+    fs.writeFileSync(blocker, "");
+
     const factory = createLoggerFactory({
-      dir: "/proc/definitely/not/writable",
+      dir: path.join(blocker, "logs"),
       console: false,
       minLevel: "debug",
       keepDays: 7,
