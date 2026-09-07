@@ -22,7 +22,7 @@ Coolify builds from Git, so the code has to be somewhere it can reach. Already
 done, but for future changes:
 
 ```bash
-git push origin claude/google-maps-scraper-dashboard-3w3qto
+git push origin main
 ```
 
 Pushing is also how you deploy: Coolify rebuilds on each push once the resource
@@ -42,7 +42,7 @@ Fill in:
 | Field | Value |
 | --- | --- |
 | Repository URL | `https://github.com/Erreses/lead-tracking` |
-| Branch | `claude/google-maps-scraper-dashboard-3w3qto` |
+| Branch | `main` |
 | **Build Pack** | **Docker Compose** |
 | Docker Compose Location | `/docker-compose.yml` |
 
@@ -154,10 +154,15 @@ will collide with an existing row:
 psql "$REMOTE" -c "select last_value from businesses_id_seq;"   # 2012
 ```
 
-> **Version note.** The VPS runs Postgres 17; your Mac has 14. Dumping from 14
-> and restoring into 17 is fine — that direction always works. Going the other
-> way is not: to restore a *VPS* backup locally you need version 17 client
-> tools, `brew install postgresql@17`.
+> **Version note.** The VPS runs Postgres 17; your Mac runs 14, and the `pg_dump`
+> on your PATH is 14. Dumping from 14 and restoring into 17 is fine — that
+> direction always works. The other way is not: a *VPS* backup needs version 17
+> client tools to read it. Those are installed already but Homebrew does not link
+> them, so reach for them explicitly when restoring a VPS dump locally:
+>
+> ```bash
+> export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+> ```
 
 ## 6. Give your partner access
 
