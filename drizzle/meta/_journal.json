@@ -8,6 +8,13 @@
       "when": 1787312595308,
       "tag": "0000_supreme_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788826384910,
+      "tag": "0001_plain_thunderbolts",
+      "breakpoints": true
     }
   ]
 }

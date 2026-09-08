@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LeadDetail } from "@/components/lead-detail";
+import { SiteGenerator } from "@/components/site-generator";
 import { Badge } from "@/components/ui";
 import { getCategory } from "@/config/categories";
 import { db } from "@/lib/db";
@@ -75,6 +76,8 @@ export default async function LeadPage(props: PageProps<"/leads/[id]">) {
         />
 
         <div className="space-y-5">
+          <SiteGenerator leadId={lead.leadId} />
+
           <div className="rounded-xl border border-line bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold tracking-tight">The business</h2>
             <dl className="space-y-2.5 text-sm">

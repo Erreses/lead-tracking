@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# demo sites the agent writes — regenerable, and each one embeds a business's
+# photos and reviews pulled from Google
+/generated-sites

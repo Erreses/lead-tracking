@@ -247,6 +247,58 @@ export const cellCoverage = pgTable(
   ],
 );
 
+/**
+ * How far a demo-site build got. Mirrors `scrape_jobs.status`, for the same
+ * reason: the work outlives the request that started it, so the page has to be
+ * able to ask where it is.
+ */
+export const SITE_BUILD_STATUSES = [
+  "pending",
+  "fetching",
+  "generating",
+  "completed",
+  "failed",
+] as const;
+export type SiteBuildStatus = (typeof SITE_BUILD_STATUSES)[number];
+
+/**
+ * One row per attempt to generate a demo website for a business.
+ *
+ * `detailsJson` is the point of keeping history rather than a single column on
+ * `businesses`: Place Details is a paid call, so once a business has been
+ * fetched successfully the payload is reused and a re-generated site costs
+ * nothing but Claude tokens. Photos live on disk beside the page, not here.
+ */
+export const siteBuilds = pgTable(
+  "site_builds",
+  {
+    id: serial("id").primaryKey(),
+    businessId: integer("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    /** Nullable: a business can be enriched before anyone works it as a lead. */
+    leadId: integer("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    /** Directory name under `generated-sites/`. See `src/lib/generate/paths.ts`. */
+    slug: text("slug").notNull(),
+    status: text("status").$type<SiteBuildStatus>().notNull().default("pending"),
+    /** Raw Place Details response, reused by later builds instead of re-buying. */
+    detailsJson: text("details_json"),
+    photoCount: integer("photo_count").notNull().default(0),
+    /** What this build actually spent at Google — 0 when the cache was hit. */
+    costUsd: doublePrecision("cost_usd").notNull().default(0),
+    /** Tail of the agent's own output, kept for when a page comes out wrong. */
+    agentLog: text("agent_log"),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("site_builds_business_idx").on(t.businessId),
+    index("site_builds_created_at_idx").on(t.createdAt),
+  ],
+);
+
 /** Editable key/value config: default quote, outreach templates, domain lists. */
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
@@ -259,3 +311,4 @@ export type NewBusiness = typeof businesses.$inferInsert;
 export type Lead = typeof leads.$inferSelect;
 export type LeadEvent = typeof leadEvents.$inferSelect;
 export type ScrapeJob = typeof scrapeJobs.$inferSelect;
+export type SiteBuild = typeof siteBuilds.$inferSelect;
