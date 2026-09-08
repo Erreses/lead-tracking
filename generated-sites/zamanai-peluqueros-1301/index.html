@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zamanai Peluqueros — Peluquería en Zurbano, Chamberí (Madrid)</title>
+<meta name="description" content="Zamanai Peluqueros. Calle de Zurbano, 15, Chamberí, Madrid. 5,0 en Google con 467 reseñas. Teléfono 913 10 79 82.">
+<style>
+  :root{
+    --espresso:#241c16;
+    --espresso-deep:#120d0a;
+    --ink:#1d1611;
+    --paper:#f4ecdd;
+    --paper-deep:#e9dfcc;
+    --gold:#c39a4e;
+    --gold-lit:#e9c884;
+    --ochre:#e7b23f;
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --text:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--text);
+    font-size:1.05rem;
+    line-height:1.65;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:var(--espresso-deep);}
+  a{color:inherit;}
+
+  .wrap{max-width:1080px;margin-inline:auto;width:100%;}
+  section{padding:clamp(4rem,10vw,8.5rem) clamp(1.25rem,5vw,4rem);}
+
+  .eyebrow{
+    font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    font-weight:600;margin:0;
+  }
+  .rule{
+    display:block;width:2.6rem;height:2px;border:0;margin:0 0 1.4rem;
+    background:var(--gold);
+  }
+  h2{
+    font-family:var(--display);
+    font-size:clamp(2.1rem,5.5vw,3.4rem);
+    line-height:1.02;letter-spacing:-.02em;
+    font-weight:400;margin:0 0 1.6rem;
+  }
+
+  /* ---------- grain ---------- */
+  .grain::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;opacity:.19;
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative;isolation:isolate;
+    min-height:100svh;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(2rem,5vh,3.5rem) clamp(1.25rem,5vw,4rem);
+    color:var(--paper);
+    text-align:center;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -8%, rgba(233,200,132,.30) 0%, rgba(233,200,132,0) 62%),
+      radial-gradient(ellipse 90% 60% at 50% 110%, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 70%),
+      linear-gradient(168deg,#33291f 0%, var(--espresso) 42%, var(--espresso-deep) 100%);
+    overflow:hidden;
+  }
+  .hero > *{position:relative;z-index:2;}
+  .hero::after{z-index:1;}
+
+  /* faint mirrored-columns texture, from the salon walls */
+  .hero::before{
+    content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg,
+      rgba(255,255,255,.045) 0 1px,
+      rgba(255,255,255,0) 1px 84px);
+    mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 72%);
+    -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 72%);
+  }
+
+  .emblem{
+    width:clamp(72px,17vw,96px);height:auto;display:block;
+    margin:0 auto clamp(1rem,2.5vh,1.6rem);
+  }
+  .hero .eyebrow{color:var(--gold-lit);opacity:.9;margin-bottom:clamp(.7rem,2vh,1.1rem);}
+
+  .name{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:clamp(3.4rem,17vw,9.5rem);
+    line-height:.9;letter-spacing:-.025em;
+    margin:0;
+    color:#fdf7ea;
+    text-shadow:0 .06em .5em rgba(0,0,0,.35);
+  }
+  .name-sub{
+    display:block;
+    font-family:var(--text);
+    font-size:clamp(.72rem,2.9vw,1.05rem);
+    letter-spacing:.42em;text-indent:.42em;
+    text-transform:uppercase;font-weight:600;
+    color:var(--gold);
+    margin-top:clamp(.7rem,2vh,1.15rem);
+  }
+  .hero-line{
+    max-width:34ch;margin:clamp(1.3rem,3.6vh,2.2rem) auto 0;
+    font-size:clamp(1rem,3.6vw,1.2rem);
+    line-height:1.55;
+    color:rgba(253,247,234,.82);
+  }
+
+  .stars{
+    display:flex;align-items:center;justify-content:center;gap:.6rem;
+    margin:clamp(1.2rem,3.2vh,2rem) 0 clamp(1.4rem,3.5vh,2.2rem);
+    flex-wrap:wrap;
+  }
+  .stars svg{display:block;}
+  .stars b{
+    font-family:var(--display);font-size:1.35rem;font-weight:400;
+    color:var(--gold-lit);letter-spacing:.01em;
+  }
+  .stars span{
+    font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+    color:rgba(253,247,234,.62);
+  }
+
+  .cta-row{
+    display:flex;flex-wrap:wrap;gap:.9rem 1.4rem;
+    align-items:center;justify-content:center;
+  }
+  .call{
+    display:inline-flex;align-items:center;gap:.7rem;
+    background:linear-gradient(180deg,var(--gold-lit),var(--gold));
+    color:#22190f;text-decoration:none;
+    font-weight:700;font-size:1.02rem;letter-spacing:.01em;
+    padding:1rem 1.7rem;border-radius:2rem;
+    box-shadow:0 1.1rem 2.4rem rgba(0,0,0,.42);
+    transition:180ms ease;
+  }
+  .call svg{display:block;flex:none;}
+  .call:hover,.call:focus-visible{
+    transform:translateY(-2px);
+    box-shadow:0 1.6rem 3rem rgba(0,0,0,.5);
+    background:linear-gradient(180deg,#f3d79b,var(--gold-lit));
+  }
+  .ghost{
+    color:rgba(253,247,234,.72);text-decoration:none;
+    font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;
+    border-bottom:1px solid rgba(195,154,78,.5);
+    padding-bottom:.25rem;transition:180ms ease;
+  }
+  .ghost:hover,.ghost:focus-visible{color:var(--gold-lit);border-color:var(--gold-lit);}
+
+  /* ---------- gold strand band ---------- */
+  .band{display:block;width:100%;height:26px;background:var(--espresso-deep);}
+
+  /* ---------- about ---------- */
+  .about{background:var(--paper);}
+  .about .eyebrow{color:#8a6a33;}
+  .about-grid{display:grid;gap:clamp(1.6rem,4vw,3.4rem);}
+  .about p{max-width:60ch;margin:0 0 1.15rem;}
+  .about p:last-child{margin-bottom:0;}
+  .lead{font-size:clamp(1.15rem,2.6vw,1.4rem);line-height:1.5;font-family:var(--display);}
+
+  .facts{
+    display:grid;grid-template-columns:1fr;gap:0;
+    border-top:1px solid rgba(195,154,78,.4);
+    margin-top:clamp(2.4rem,6vw,3.6rem);
+  }
+  .fact{
+    padding:1.15rem 0;
+    border-bottom:1px solid rgba(195,154,78,.28);
+    display:flex;justify-content:space-between;gap:1.2rem;align-items:baseline;
+  }
+  .fact dt{
+    font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+    color:#8a6a33;font-weight:600;
+  }
+  .fact dd{margin:0;text-align:right;font-family:var(--display);font-size:1.1rem;}
+
+  /* ---------- reviews ---------- */
+  .proof{
+    position:relative;isolation:isolate;overflow:hidden;
+    background:
+      radial-gradient(ellipse 80% 55% at 15% 0%, rgba(233,200,132,.16) 0%, rgba(233,200,132,0) 60%),
+      linear-gradient(175deg,var(--espresso) 0%,var(--espresso-deep) 100%);
+    color:var(--paper);
+  }
+  .proof > *{position:relative;z-index:2;}
+  .proof::after{z-index:1;}
+  .proof .eyebrow{color:var(--gold);}
+  .proof h2{color:#fdf7ea;}
+
+  .quotes{
+    display:grid;gap:clamp(1.6rem,3vw,2rem);
+    grid-template-columns:1fr;
+  }
+  figure{
+    margin:0;padding:clamp(1.6rem,3.4vw,2.3rem);
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(195,154,78,.26);
+    border-radius:2px;
+    display:flex;flex-direction:column;
+    transition:180ms ease;
+  }
+  figure:hover{background:rgba(255,255,255,.075);border-color:rgba(195,154,78,.5);}
+  figure .mark{
+    font-family:var(--display);font-size:2.6rem;line-height:.6;
+    color:var(--gold);opacity:.55;margin-bottom:.9rem;display:block;
+  }
+  blockquote{
+    margin:0 0 1.5rem;font-family:var(--display);
+    font-size:clamp(1.08rem,2.3vw,1.28rem);line-height:1.5;
+    color:rgba(253,247,234,.94);
+  }
+  figcaption{
+    margin-top:auto;
+    padding-top:1rem;
+    border-top:1px solid rgba(195,154,78,.3);
+    font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--gold-lit);font-weight:600;
+  }
+  figcaption em{
+    display:block;font-style:normal;font-weight:400;letter-spacing:.1em;
+    color:rgba(253,247,234,.45);margin-top:.35rem;font-size:.72rem;
+  }
+
+  /* ---------- hours ---------- */
+  .practical{background:var(--paper-deep);}
+  .practical .eyebrow{color:#8a6a33;}
+  .practical-grid{
+    display:grid;grid-template-columns:1fr;
+    gap:clamp(2.4rem,5vw,4rem);
+  }
+  table{width:100%;border-collapse:collapse;}
+  th{
+    text-align:left;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+    color:#8a6a33;font-weight:600;padding-bottom:.7rem;
+    border-bottom:1px solid rgba(195,154,78,.45);
+  }
+  th:last-child{text-align:right;}
+  td{
+    padding:.85rem 0;border-bottom:1px solid rgba(36,28,22,.11);
+    font-size:1rem;
+  }
+  td:last-child{
+    text-align:right;font-family:var(--display);font-size:1.12rem;
+    font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  }
+  tr:last-child td{border-bottom:0;}
+  .closed{color:rgba(36,28,22,.45);font-style:italic;}
+
+  .address{font-style:normal;}
+  .address .street{
+    font-family:var(--display);
+    font-size:clamp(1.5rem,4vw,2.05rem);line-height:1.2;letter-spacing:-.01em;
+    margin:0 0 .4rem;
+  }
+  .address .zone{color:rgba(36,28,22,.66);margin:0 0 1.6rem;}
+  .maplink{
+    display:inline-flex;align-items:center;gap:.55rem;
+    text-decoration:none;font-weight:600;font-size:.9rem;
+    color:var(--ink);
+    border-bottom:1px solid var(--gold);padding-bottom:.3rem;
+    transition:180ms ease;
+  }
+  .maplink:hover,.maplink:focus-visible{color:#8a6a33;border-color:#8a6a33;}
+  .paycard{
+    margin-top:2rem;font-size:.9rem;color:rgba(36,28,22,.66);
+    max-width:34ch;
+  }
+
+  /* ---------- close ---------- */
+  .close{
+    position:relative;isolation:isolate;overflow:hidden;
+    text-align:center;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 0%, #f2c65c 0%, rgba(242,198,92,0) 62%),
+      linear-gradient(170deg,var(--ochre) 0%,#d0951f 100%);
+    color:#2b1f0c;
+  }
+  .close > *{position:relative;z-index:2;}
+  .close::after{z-index:1;opacity:.14;}
+  .close .eyebrow{color:rgba(43,31,12,.7);}
+  .close h2{margin-bottom:1rem;}
+  .close p{max-width:38ch;margin:0 auto 2.2rem;color:rgba(43,31,12,.82);}
+  .phone-big{
+    display:inline-block;text-decoration:none;
+    font-family:var(--display);
+    font-size:clamp(2.3rem,10vw,4.6rem);
+    line-height:1;letter-spacing:-.025em;
+    color:#221708;
+    border-bottom:3px solid rgba(34,23,8,.28);
+    padding-bottom:.12em;
+    transition:180ms ease;
+    overflow-wrap:break-word;
+  }
+  .phone-big:hover,.phone-big:focus-visible{border-color:#221708;}
+  .close .sub{
+    margin:2.1rem auto 0;font-size:.82rem;letter-spacing:.14em;
+    text-transform:uppercase;color:rgba(43,31,12,.68);max-width:30ch;
+    line-height:1.9;
+  }
+
+  footer{
+    background:var(--espresso-deep);color:rgba(244,236,221,.5);
+    padding:2.6rem clamp(1.25rem,5vw,4rem);
+    font-size:.8rem;
+    display:flex;flex-wrap:wrap;gap:.6rem 2rem;justify-content:space-between;
+  }
+  footer b{
+    color:var(--gold);font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    font-size:.76rem;
+  }
+
+  @media (min-width:760px){
+    .about-grid{grid-template-columns:.8fr 1.2fr;}
+    .facts{grid-column:1 / -1;grid-template-columns:repeat(3,1fr);gap:0 2.5rem;}
+    .quotes{grid-template-columns:repeat(3,1fr);}
+    .practical-grid{grid-template-columns:1.1fr .9fr;align-items:start;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero grain">
+  <!-- Emblem: the arched shopfront on Zurbano, with the strand flourish from the sign -->
+  <svg class="emblem" viewBox="0 0 120 150" fill="none" aria-hidden="true">
+    <path d="M12 148V60a48 48 0 0 1 96 0v88" stroke="#c39a4e" stroke-width="1.6"/>
+    <path d="M22 148V62a38 38 0 0 1 76 0v86" stroke="#c39a4e" stroke-width=".7" opacity=".45"/>
+    <path d="M60 34c-16 12-24 26-24 42 0 14 9 24 24 30" stroke="#e9c884" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M60 34c14 10 22 24 22 40 0 15-8 26-22 32" stroke="#e9c884" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M60 46c-8 8-12 18-12 28 0 10 4 18 12 24" stroke="#c39a4e" stroke-width=".9" stroke-linecap="round" opacity=".8"/>
+    <path d="M60 46c7 7 11 17 11 27 0 11-4 19-11 25" stroke="#c39a4e" stroke-width=".9" stroke-linecap="round" opacity=".8"/>
+    <circle cx="60" cy="30" r="4.4" fill="#e9c884"/>
+    <path d="M34 128h52" stroke="#c39a4e" stroke-width="1" opacity=".6"/>
+  </svg>
+
+  <p class="eyebrow">Peluquería · Chamberí, Madrid</p>
+
+  <h1 class="name">Zamanai<span class="name-sub">Peluqueros</span></h1>
+
+  <p class="hero-line">Corte, color y peinado en la calle Zurbano. Te decimos la verdad sobre tu pelo y luego lo hacemos bien.</p>
+
+  <div class="stars">
+    <svg width="96" height="17" viewBox="0 0 96 17" fill="#e9c884" aria-hidden="true">
+      <path d="M8.5 0l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6-4.9-3-4.9 3 1.3-5.6L.5 5.8l5.8-.5z"/>
+      <path d="M28.5 0l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6-4.9-3-4.9 3 1.3-5.6-4.4-3.8 5.8-.5z"/>
+      <path d="M48.5 0l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6-4.9-3-4.9 3 1.3-5.6-4.4-3.8 5.8-.5z"/>
+      <path d="M68.5 0l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6-4.9-3-4.9 3 1.3-5.6-4.4-3.8 5.8-.5z"/>
+      <path d="M88.5 0l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6-4.9-3-4.9 3 1.3-5.6-4.4-3.8 5.8-.5z"/>
+    </svg>
+    <b>5,0</b>
+    <span>467 reseñas en Google</span>
+  </div>
+
+  <div class="cta-row">
+    <a class="call" href="tel:+34913107982">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#22190f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>
+      </svg>
+      Llamar 913 10 79 82
+    </a>
+    <a class="ghost" href="#horario">Ver horario</a>
+  </div>
+</header>
+
+<svg class="band" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 20 C 25 4, 75 4, 100 20 S 175 36, 200 20 S 275 4, 300 20 S 375 36, 400 20"
+        fill="none" stroke="#c39a4e" stroke-width="1.2" opacity=".7"/>
+  <path d="M0 13 C 25 -3, 75 -3, 100 13 S 175 29, 200 13 S 275 -3, 300 13 S 375 29, 400 13"
+        fill="none" stroke="#c39a4e" stroke-width=".8" opacity=".35"/>
+</svg>
+
+<section class="about">
+  <div class="wrap">
+    <div class="about-grid">
+      <div>
+        <p class="eyebrow">El salón</p>
+        <hr class="rule">
+        <h2>Zurbano,<br>número 15</h2>
+      </div>
+      <div>
+        <p class="lead">Detrás del rótulo dorado hay un salón grande de espejos, luz cálida y sillones negros, con su rincón para esperar sentado.</p>
+        <p>Corte, color, peinados y recogidos. Lo que más repite la gente que vuelve es la honestidad: si algo no te va a quedar bien, se dice antes de empezar. Y si llegas con un corte de otro sitio que no salió como esperabas, se arregla.</p>
+        <p>Lo demás es hacer exactamente lo que has pedido. Cinco estrellas de media en 467 reseñas de Google dan una idea bastante clara.</p>
+      </div>
+
+      <dl class="facts">
+        <div class="fact"><dt>Valoración</dt><dd>5,0 · 467 reseñas</dd></div>
+        <div class="fact"><dt>Barrio</dt><dd>Chamberí</dd></div>
+        <div class="fact"><dt>Teléfono</dt><dd><a href="tel:+34913107982" style="text-decoration:none">913 10 79 82</a></dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="proof grain">
+  <div class="wrap">
+    <p class="eyebrow">Lo que dicen en Google</p>
+    <hr class="rule">
+    <h2>Cuatrocientas sesenta<br>y siete veces cinco estrellas</h2>
+
+    <div class="quotes">
+      <figure>
+        <span class="mark" aria-hidden="true">«</span>
+        <blockquote>Súper profesionales. Las mejores peluqueras de Madrid. He probado en otros sitios y siempre vuelvo a ellas, me han tenido que arreglar más de un desaguisado de otros sitios. Recomendabilísimas.</blockquote>
+        <figcaption>Mercedes Pérez Dobón<em>Reseña en Google · ★★★★★</em></figcaption>
+      </figure>
+      <figure>
+        <span class="mark" aria-hidden="true">«</span>
+        <blockquote>Me cortaron el pelo fatal en otro sitio y me lo han arreglado, me han sido totalmente sinceros y seguiré yendo. Me ha gustado mucho el trato, volveré sin duda. 100% recomendado.</blockquote>
+        <figcaption>Nerea Marrero<em>Reseña en Google · ★★★★★</em></figcaption>
+      </figure>
+      <figure>
+        <span class="mark" aria-hidden="true">«</span>
+        <blockquote>Son las mejores la verdad, honestas y tranquilas, les puedes confiar tu pelo y te encantará el resultado.</blockquote>
+        <figcaption>Sandra Lopez<em>Reseña en Google · ★★★★★</em></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="practical" id="horario">
+  <div class="wrap">
+    <div class="practical-grid">
+      <div>
+        <p class="eyebrow">Horario</p>
+        <hr class="rule">
+        <table>
+          <thead>
+            <tr><th scope="col">Día</th><th scope="col">Abierto</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Lunes</td><td>10:00 – 19:00</td></tr>
+            <tr><td>Martes</td><td>10:00 – 19:00</td></tr>
+            <tr><td>Miércoles</td><td>10:00 – 19:00</td></tr>
+            <tr><td>Jueves</td><td>10:00 – 19:00</td></tr>
+            <tr><td>Viernes</td><td>10:00 – 19:00</td></tr>
+            <tr><td>Sábado</td><td>10:00 – 14:00</td></tr>
+            <tr><td class="closed">Domingo</td><td class="closed">Cerrado</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <p class="eyebrow">Dónde estamos</p>
+        <hr class="rule">
+        <address class="address">
+          <p class="street">Calle de Zurbano, 15</p>
+          <p class="zone">Chamberí · 28010 Madrid</p>
+        </address>
+        <a class="maplink" href="https://maps.google.com/?cid=10599772983441365936" target="_blank" rel="noopener">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          Abrir en Google Maps
+        </a>
+        <p class="paycard">Se puede pagar con tarjeta de crédito, de débito y sin contacto.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="close grain">
+  <div class="wrap">
+    <p class="eyebrow">Llámanos</p>
+    <h2>¿Nos vemos esta semana?</h2>
+    <p>El mismo número que hay en el rótulo de Zurbano, aquí un poco más grande.</p>
+    <a class="phone-big" href="tel:+34913107982">913 10 79 82</a>
+    <p class="sub">Calle de Zurbano, 15 · Chamberí<br>Lunes a viernes de 10:00 a 19:00 · Sábados hasta las 14:00</p>
+  </div>
+</section>
+
+<footer>
+  <b>Zamanai Peluqueros</b>
+  <span>Calle de Zurbano, 15 · 28010 Madrid · 913 10 79 82</span>
+</footer>
+
+</body>
+</html>

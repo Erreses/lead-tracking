@@ -18,7 +18,7 @@ import {
   COST_PER_PHOTO_USD,
   PHOTOS_PER_SITE,
 } from "@/lib/places/pricing";
-import { DATA_FILE, runSiteAgent } from "./agent";
+import { BRIEF_FILE, DATA_FILE, DESIGN_SKILL, runSiteAgent } from "./agent";
 import { INDEX_FILE, demoPath, siteDir, siteSlug, workDir } from "./paths";
 
 const log = logger("generate.runner");
@@ -204,6 +204,11 @@ async function execute(
   const dataFile = path.join(work, DATA_FILE);
   await fs.writeFile(dataFile, JSON.stringify(payload, null, 2), "utf8");
 
+  // A copy, not the original: the agent must not be able to reach the rest of
+  // the repository, nor to rewrite the brief that every future build reads.
+  const briefFile = path.join(work, BRIEF_FILE);
+  await fs.copyFile(DESIGN_SKILL, briefFile);
+
   await db
     .update(siteBuilds)
     .set({
@@ -216,7 +221,7 @@ async function execute(
 
   buildLog.info("agent.handoff", { photos: photos.length, costUsd });
 
-  const result = await runSiteAgent(dir, dataFile, photoPaths);
+  const result = await runSiteAgent(dir, dataFile, briefFile, photoPaths);
 
   if (!result.ok) {
     buildLog.error("build.failed", { error: result.error });
