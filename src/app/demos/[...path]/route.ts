@@ -48,8 +48,9 @@ export async function GET(_request: Request, ctx: RouteContext<"/demos/[...path]
   // `/demos/<slug>/` means the page itself.
   const relative = rest.length > 0 ? rest.join("/") : INDEX_FILE;
 
-  // `business.json` is the agent's input, which includes the raw Places payload.
-  // It sits in the same directory but is not part of the site.
+  // Belt and braces. The agent's input now lives outside the site directory
+  // entirely, but this file must never be served if one ever lands here: it
+  // carries the raw Places payload, reviews and all.
   if (relative === "business.json") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

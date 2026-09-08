@@ -13,6 +13,21 @@ import path from "node:path";
 export const SITES_ROOT =
   process.env.GENERATED_SITES_DIR ?? path.join(process.cwd(), "generated-sites");
 
+/**
+ * Scratch space for a build: the real Google photos, and the JSON the agent
+ * reads. Deliberately *not* inside the site directory.
+ *
+ * Both are Google's data. The photos carry Places licensing and attribution
+ * terms and the JSON carries customers' reviews verbatim; neither is ours to
+ * commit to a public repository. Keeping them under a separate root means
+ * `generated-sites/` holds nothing but the page we wrote, which is what makes
+ * it publishable at all.
+ *
+ * The agent reads from here and writes only to the site directory.
+ */
+export const WORK_ROOT =
+  process.env.SITE_WORK_DIR ?? path.join(process.cwd(), ".site-work");
+
 /** Anything outside this set is stripped, so a slug is always path-safe. */
 const SLUG_SAFE = /[^a-z0-9]+/g;
 
@@ -85,6 +100,17 @@ export function siteFile(slug: string, relative: string): string | null {
 
   const resolved = path.resolve(/*turbopackIgnore: true*/ dir, relative);
   if (resolved !== dir && !resolved.startsWith(dir + path.sep)) return null;
+
+  return resolved;
+}
+
+/** Build scratch space for one business, outside the published site. */
+export function workDir(slug: string): string | null {
+  if (!isValidSlug(slug)) return null;
+
+  const root = path.resolve(/*turbopackIgnore: true*/ WORK_ROOT);
+  const resolved = path.resolve(/*turbopackIgnore: true*/ WORK_ROOT, slug);
+  if (resolved !== path.join(/*turbopackIgnore: true*/ root, slug)) return null;
 
   return resolved;
 }

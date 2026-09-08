@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar Loreto — Casa de comidas y tapas en Chamberí, Madrid</title>
+<meta name="description" content="Bar Loreto, clásica casa de comidas con barra en Chamberí: tapas tradicionales, menú del día y carta. Calle de Hartzenbusch, 7, Madrid. Reservas: 914 47 25 22.">
+<style>
+  :root{
+    --rojo:#a3161a;
+    --rojo-osc:#6b0f12;
+    --rojo-claro:#c8232a;
+    --crema:#f7f0e2;
+    --crema-osc:#eadfc8;
+    --oro:#d9a441;
+    --oro-osc:#a9762a;
+    --tinta:#221812;
+    --tinta-suave:#5c4a3d;
+    --madera:#6f4423;
+    --verde:#2f5d4a;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+
+  html{ -webkit-text-size-adjust:100%; }
+
+  body{
+    margin:0;
+    background:var(--crema);
+    color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:17px;
+    line-height:1.65;
+    overflow-x:hidden;
+  }
+
+  h1,h2,h3,.display{
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+    font-weight:700;
+    letter-spacing:.005em;
+    line-height:1.12;
+    margin:0;
+  }
+
+  a{color:inherit}
+
+  .envoltorio{
+    width:100%;
+    max-width:64rem;
+    margin:0 auto;
+    padding:0 1.375rem;
+  }
+
+  /* ---------- Franja de mantel ---------- */
+  .mantel{
+    height:14px;
+    width:100%;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.85) 0 12px, rgba(255,255,255,0) 12px 24px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.85) 0 12px, rgba(255,255,255,0) 12px 24px),
+      var(--rojo-claro);
+    border-top:1px solid rgba(0,0,0,.18);
+    border-bottom:1px solid rgba(0,0,0,.18);
+  }
+  .mantel--verde{
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.85) 0 12px, rgba(255,255,255,0) 12px 24px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.85) 0 12px, rgba(255,255,255,0) 12px 24px),
+      var(--verde);
+  }
+
+  /* ---------- Cabecera ---------- */
+  .toldo{
+    position:relative;
+    background:
+      radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 60%),
+      linear-gradient(178deg,#b5201f 0%, var(--rojo) 42%, var(--rojo-osc) 100%);
+    color:var(--crema);
+    overflow:hidden;
+  }
+  .toldo::after{
+    content:"";
+    position:absolute;
+    inset:auto 0 0 0;
+    height:5px;
+    background:linear-gradient(90deg,var(--oro-osc),var(--oro) 35%,#f3d089 50%,var(--oro) 65%,var(--oro-osc));
+  }
+
+  .toldo .envoltorio{
+    padding-top:2.75rem;
+    padding-bottom:3rem;
+    text-align:center;
+  }
+
+  .emblema{
+    width:82px;
+    height:82px;
+    display:block;
+    margin:0 auto 1.25rem;
+  }
+
+  .sobretitulo{
+    font-size:.72rem;
+    letter-spacing:.34em;
+    text-transform:uppercase;
+    color:var(--oro);
+    margin:0 0 .85rem;
+    font-weight:600;
+    /* la última letra arrastra el tracking: lo compensamos */
+    padding-left:.34em;
+  }
+
+  h1{
+    font-size:clamp(2.6rem,15vw,5.5rem);
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    color:#fdf6e6;
+    text-shadow:0 2px 0 rgba(0,0,0,.22);
+  }
+
+  .lema{
+    font-size:clamp(1rem,4.4vw,1.35rem);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    font-style:italic;
+    color:#f2ddb4;
+    margin:.7rem 0 0;
+  }
+
+  .filete{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:.9rem;
+    margin:1.5rem auto 1.4rem;
+    max-width:22rem;
+  }
+  .filete span{
+    height:1px;
+    flex:1;
+    background:linear-gradient(90deg,rgba(217,164,65,0),var(--oro),rgba(217,164,65,0));
+  }
+  .filete svg{display:block;flex:none}
+
+  .valoracion{
+    display:inline-flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:baseline;
+    gap:.5rem;
+    font-size:.95rem;
+    color:#f6e6c4;
+  }
+  .nota{
+    font-family:"Iowan Old Style",Palatino,Georgia,serif;
+    font-size:1.5rem;
+    font-weight:700;
+    color:var(--oro);
+  }
+
+  /* ---------- Botones ---------- */
+  .acciones{
+    display:flex;
+    flex-direction:column;
+    gap:.7rem;
+    margin-top:1.9rem;
+  }
+  @media (min-width:34rem){
+    .acciones{flex-direction:row;justify-content:center}
+  }
+
+  .boton{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.55rem;
+    padding:.95rem 1.6rem;
+    border-radius:2px;
+    font-size:1.02rem;
+    font-weight:700;
+    letter-spacing:.045em;
+    text-transform:uppercase;
+    text-decoration:none;
+    border:1.5px solid transparent;
+    transition:transform .12s ease, background-color .18s ease, color .18s ease;
+  }
+  .boton:active{transform:translateY(1px)}
+  .boton--oro{
+    background:linear-gradient(180deg,#eabc63,var(--oro) 55%,#c2892c);
+    color:#3a2408;
+    border-color:#8d6520;
+    box-shadow:0 2px 0 rgba(0,0,0,.25);
+  }
+  .boton--oro:hover{background:#f0c877}
+  .boton--linea{
+    border-color:rgba(246,230,196,.5);
+    color:#f6e6c4;
+  }
+  .boton--linea:hover{background:rgba(246,230,196,.12)}
+
+  /* ---------- Secciones ---------- */
+  section{padding:3.25rem 0}
+  section + section{border-top:1px solid var(--crema-osc)}
+
+  .rotulo{
+    font-size:.7rem;
+    letter-spacing:.3em;
+    text-transform:uppercase;
+    color:var(--rojo);
+    font-weight:700;
+    margin:0 0 .6rem;
+    padding-left:.3em;
+  }
+  h2{
+    font-size:clamp(1.75rem,6.5vw,2.5rem);
+    margin-bottom:1.3rem;
+  }
+  h2 + p{margin-top:0}
+
+  p{margin:0 0 1.05rem}
+  .texto{max-width:38rem;color:var(--tinta-suave)}
+  .texto strong{color:var(--tinta)}
+
+  /* ---------- La casa ---------- */
+  .tarjetas{
+    display:grid;
+    gap:1rem;
+    margin-top:2rem;
+  }
+  @media (min-width:44rem){
+    .tarjetas{grid-template-columns:repeat(3,1fr)}
+  }
+  .tarjeta{
+    background:#fffdf7;
+    border:1px solid var(--crema-osc);
+    border-top:3px solid var(--rojo);
+    padding:1.5rem 1.35rem 1.6rem;
+  }
+  .tarjeta svg{display:block;margin-bottom:.9rem}
+  .tarjeta h3{
+    font-size:1.2rem;
+    margin-bottom:.4rem;
+  }
+  .tarjeta p{
+    margin:0;
+    font-size:.95rem;
+    color:var(--tinta-suave);
+  }
+
+  /* ---------- Horario ---------- */
+  .bloque-horario{
+    background:linear-gradient(180deg,#fffdf7,#f3ead6);
+    border:1px solid var(--crema-osc);
+    padding:1.5rem 1.25rem 1.65rem;
+    margin-top:1.75rem;
+  }
+  @media (min-width:44rem){
+    .bloque-horario{padding:2rem 2.25rem 2.25rem;max-width:34rem}
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:1rem;
+  }
+  caption{
+    text-align:left;
+    font-size:.7rem;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    color:var(--madera);
+    font-weight:700;
+    padding-bottom:.85rem;
+  }
+  th,td{
+    padding:.62rem 0;
+    border-bottom:1px dotted rgba(111,68,35,.32);
+    vertical-align:baseline;
+  }
+  tr:last-child th,tr:last-child td{border-bottom:0}
+  th{
+    text-align:left;
+    font-weight:600;
+    text-transform:capitalize;
+    letter-spacing:.01em;
+  }
+  td{
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+    padding-left:1rem;
+  }
+  .cerrado{color:var(--rojo);font-weight:600}
+
+  /* ---------- Reseñas ---------- */
+  .resenas{
+    background:var(--tinta);
+    color:#f0e6d6;
+  }
+  .resenas h2{color:#fdf6e6}
+  .resenas .rotulo{color:var(--oro)}
+  .lista-resenas{
+    display:grid;
+    gap:1.75rem;
+    margin-top:2rem;
+  }
+  @media (min-width:48rem){
+    .lista-resenas{grid-template-columns:1fr 1fr;gap:2.25rem}
+  }
+  figure{
+    margin:0;
+    padding-top:1.4rem;
+    border-top:2px solid rgba(217,164,65,.45);
+  }
+  blockquote{
+    margin:0 0 1rem;
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    font-size:1.1rem;
+    line-height:1.62;
+    color:#f4ecdd;
+  }
+  figcaption{
+    font-size:.85rem;
+    letter-spacing:.06em;
+    color:#c3b299;
+  }
+  figcaption b{
+    display:block;
+    font-size:.95rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--oro);
+    font-weight:700;
+  }
+  .estrellas{
+    display:block;
+    margin-bottom:.9rem;
+  }
+
+  /* ---------- Visita ---------- */
+  .datos{
+    display:grid;
+    gap:1.75rem;
+    margin-top:1.75rem;
+  }
+  @media (min-width:44rem){
+    .datos{grid-template-columns:1fr 1fr;gap:2.5rem}
+  }
+  .dato h3{
+    font-size:1.05rem;
+    margin-bottom:.35rem;
+  }
+  .dato p{margin-bottom:.35rem;color:var(--tinta-suave)}
+  .dato a{color:var(--rojo);text-decoration-thickness:1px;text-underline-offset:3px}
+
+  .telefono{
+    font-family:"Iowan Old Style",Palatino,Georgia,serif;
+    font-size:clamp(1.6rem,7vw,2.1rem);
+    font-weight:700;
+    color:var(--rojo)!important;
+    text-decoration:none;
+    display:inline-block;
+    letter-spacing:.01em;
+    border-bottom:2px solid var(--oro);
+  }
+
+  .detalles{
+    list-style:none;
+    margin:1.9rem 0 0;
+    padding:1.4rem 0 0;
+    border-top:1px solid var(--crema-osc);
+    display:grid;
+    gap:.55rem;
+    font-size:.94rem;
+    color:var(--tinta-suave);
+  }
+  @media (min-width:44rem){
+    .detalles{grid-template-columns:1fr 1fr;column-gap:2.5rem}
+  }
+  .detalles li{
+    display:flex;
+    gap:.6rem;
+    align-items:flex-start;
+  }
+  .detalles svg{flex:none;margin-top:.35rem}
+
+  /* ---------- Llamada final ---------- */
+  .cierre{
+    background:
+      radial-gradient(110% 130% at 50% 0%, #b5201f 0%, var(--rojo) 45%, var(--rojo-osc) 100%);
+    color:var(--crema);
+    text-align:center;
+  }
+  .cierre h2{color:#fdf6e6}
+  .cierre p{color:#f0d9ae;max-width:30rem;margin-left:auto;margin-right:auto}
+
+  footer{
+    background:var(--tinta);
+    color:#9d8f7e;
+    font-size:.83rem;
+    text-align:center;
+    padding:2rem 0;
+  }
+  footer p{margin:0}
+  footer b{
+    color:#e7dcc8;
+    font-family:"Iowan Old Style",Palatino,Georgia,serif;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-size:.9rem;
+    display:block;
+    margin-bottom:.4rem;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="toldo">
+  <div class="envoltorio">
+
+    <svg class="emblema" viewBox="0 0 100 100" role="img" aria-label="Emblema de Bar Loreto">
+      <circle cx="50" cy="50" r="47" fill="none" stroke="#d9a441" stroke-width="2"/>
+      <circle cx="50" cy="50" r="41" fill="none" stroke="#d9a441" stroke-width="1" opacity=".55"/>
+      <path d="M50 17 l6.6 13.9 15.2 2.1 -11 10.9 2.7 15.3 -13.5 -7.3 -13.5 7.3 2.7 -15.3 -11 -10.9 15.2 -2.1z" fill="#d9a441"/>
+      <path d="M35 62 v14 M35 62 c-3.4 0-3.4 6.6 0 6.6 M35 62 c3.4 0 3.4 6.6 0 6.6" fill="none" stroke="#f3e2bb" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M65 62 c4.4 2 4.4 8 0 9 v5" fill="none" stroke="#f3e2bb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M44 70 h12" stroke="#f3e2bb" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+
+    <p class="sobretitulo">Chamberí · Madrid</p>
+    <h1>Bar Loreto</h1>
+    <p class="lema">Casa de comidas, barra y tapas de toda la vida</p>
+
+    <div class="filete">
+      <span></span>
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+        <path d="M7 0 l1.9 4.4 4.8 .5 -3.6 3.2 1 4.7 L7 10.5 2.9 12.8 3.9 8.1 .3 4.9 5.1 4.4z" fill="#d9a441"/>
+      </svg>
+      <span></span>
+    </div>
+
+    <p class="valoracion">
+      <span class="nota">4,5</span>
+      <span>sobre 5 en Google · 816 opiniones</span>
+    </p>
+
+    <div class="acciones">
+      <a class="boton boton--oro" href="tel:+34914472522">Llamar · 914 47 25 22</a>
+      <a class="boton boton--linea" href="#horario">Ver horario</a>
+    </div>
+
+  </div>
+</header>
+
+<div class="mantel" aria-hidden="true"></div>
+
+<main>
+
+  <section id="la-casa">
+    <div class="envoltorio">
+      <p class="rotulo">La casa</p>
+      <h2>Un bar de barrio<br>como los de siempre</h2>
+      <p class="texto">Clásica casa de comidas de toda la vida con barra, amplia carta de tapas
+      tradicionales y <strong>menú del día</strong>. Un sitio para el café de la mañana, la caña
+      del mediodía y la comida sin prisa, en pleno Chamberí.</p>
+
+      <div class="tarjetas">
+
+        <article class="tarjeta">
+          <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true">
+            <rect x="4" y="24" width="32" height="4" rx="1" fill="#a3161a"/>
+            <rect x="7" y="28" width="26" height="8" rx="1" fill="#6f4423" opacity=".85"/>
+            <path d="M13 24 v-7 a4 4 0 0 1 8 0 v7" fill="none" stroke="#6f4423" stroke-width="2"/>
+            <path d="M26 24 v-9 M23.5 15 h5" stroke="#d9a441" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="17" cy="12" r="2.4" fill="#d9a441"/>
+          </svg>
+          <h3>Barra y tapas</h3>
+          <p>La carta de siempre: oreja, albóndigas, callos, bacalao, croquetas caseras y bocadillos.</p>
+        </article>
+
+        <article class="tarjeta">
+          <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true">
+            <ellipse cx="20" cy="24" rx="15" ry="7" fill="none" stroke="#a3161a" stroke-width="2"/>
+            <ellipse cx="20" cy="24" rx="9" ry="4" fill="#f3d089" opacity=".7"/>
+            <path d="M9 16 q11 -8 22 0" fill="none" stroke="#6f4423" stroke-width="2" stroke-linecap="round"/>
+            <path d="M15 11 q1.5 -3 0 -6 M20 10 q1.5 -3 0 -6 M25 11 q1.5 -3 0 -6" fill="none" stroke="#d9a441" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <h3>Menú del día</h3>
+          <p>Comida casera, primeros y segundos de cuchara y plancha, a precio de barrio.</p>
+        </article>
+
+        <article class="tarjeta">
+          <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M6 20 q7 -9 16 -9 t12 9 -12 9 -16 -9z" fill="none" stroke="#a3161a" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M34 20 l4 -5 v10z" fill="#d9a441"/>
+            <circle cx="14" cy="19" r="1.6" fill="#6f4423"/>
+            <path d="M22 13 v14" stroke="#6f4423" stroke-width="1.4" opacity=".5"/>
+            <path d="M27 15 v10" stroke="#6f4423" stroke-width="1.4" opacity=".5"/>
+          </svg>
+          <h3>Carta y raciones</h3>
+          <p>Carnes, pescados y mariscos, embutidos y raciones para compartir en mesa.</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <section id="horario">
+    <div class="envoltorio">
+      <p class="rotulo">Horario</p>
+      <h2>Cuándo estamos abiertos</h2>
+      <p class="texto">Abrimos todos los días excepto los martes. Viernes, sábados y domingos, hasta las dos de la madrugada.</p>
+
+      <div class="bloque-horario">
+        <table>
+          <caption>Horario de apertura</caption>
+          <tbody>
+            <tr><th scope="row">Lunes</th><td>10:00 – 24:00</td></tr>
+            <tr><th scope="row">Martes</th><td class="cerrado">Cerrado</td></tr>
+            <tr><th scope="row">Miércoles</th><td>10:00 – 24:00</td></tr>
+            <tr><th scope="row">Jueves</th><td>10:00 – 24:00</td></tr>
+            <tr><th scope="row">Viernes</th><td>10:00 – 2:00</td></tr>
+            <tr><th scope="row">Sábado</th><td>11:00 – 2:00</td></tr>
+            <tr><th scope="row">Domingo</th><td>11:00 – 2:00</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="mantel mantel--verde" aria-hidden="true"></div>
+
+<section class="resenas">
+  <div class="envoltorio">
+    <p class="rotulo">Lo que dicen los clientes</p>
+    <h2>Opiniones en Google</h2>
+
+    <div class="lista-resenas">
+
+      <figure>
+        <svg class="estrellas" width="96" height="16" viewBox="0 0 96 16" role="img" aria-label="5 de 5 estrellas">
+          <g fill="#d9a441">
+            <path d="M8 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L8 11.3 3.8 13.6 4.8 9 1.3 5.8 6 5.3z"/>
+            <path d="M28 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L28 11.3 23.8 13.6 24.8 9 21.3 5.8 26 5.3z"/>
+            <path d="M48 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L48 11.3 43.8 13.6 44.8 9 41.3 5.8 46 5.3z"/>
+            <path d="M68 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L68 11.3 63.8 13.6 64.8 9 61.3 5.8 66 5.3z"/>
+            <path d="M88 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L88 11.3 83.8 13.6 84.8 9 81.3 5.8 86 5.3z"/>
+          </g>
+        </svg>
+        <blockquote>«Uno de esos bares de toda la vida que siguen guardando la esencia de siempre, para bien. Su carta se compone de opciones tradicionales de carne (oreja, albóndigas, alitas de pollo), pescado (con varios tipos de bacalao) y bocadillos; también tienen menú del día a muy buen precio para la zona en la que se ubica. El dueño, muy atento y amable. Nos gustó el sitio, volveremos seguro.»</blockquote>
+        <figcaption><b>Miguel Martínez</b>Opinión en Google</figcaption>
+      </figure>
+
+      <figure>
+        <svg class="estrellas" width="96" height="16" viewBox="0 0 96 16" role="img" aria-label="5 de 5 estrellas">
+          <g fill="#d9a441">
+            <path d="M8 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L8 11.3 3.8 13.6 4.8 9 1.3 5.8 6 5.3z"/>
+            <path d="M28 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L28 11.3 23.8 13.6 24.8 9 21.3 5.8 26 5.3z"/>
+            <path d="M48 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L48 11.3 43.8 13.6 44.8 9 41.3 5.8 46 5.3z"/>
+            <path d="M68 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L68 11.3 63.8 13.6 64.8 9 61.3 5.8 66 5.3z"/>
+            <path d="M88 1 l2 4.3 4.7.5 -3.5 3.2 1 4.6 L88 11.3 83.8 13.6 84.8 9 81.3 5.8 86 5.3z"/>
+          </g>
+        </svg>
+        <blockquote>«Un clásico dentro de los restaurantes de la zona de Bilbao. Comida casera y buena atención. Tiene menú del día y carta. Lo disfrutamos.»</blockquote>
+        <figcaption><b>Kiko</b>Opinión en Google</figcaption>
+      </figure>
+
+    </div>
+  </div>
+</section>
+
+<section id="visita">
+  <div class="envoltorio">
+    <p class="rotulo">Dónde estamos</p>
+    <h2>Calle de Hartzenbusch, 7</h2>
+    <p class="texto">En pleno Chamberí, a un paso de la glorieta de Bilbao.</p>
+
+    <div class="datos">
+
+      <div class="dato">
+        <h3>Dirección</h3>
+        <p>Calle de Hartzenbusch, 7<br>Chamberí · 28010 Madrid</p>
+        <p><a href="https://maps.google.com/?cid=13929298504569376289" target="_blank" rel="noopener">Cómo llegar en Google Maps →</a></p>
+      </div>
+
+      <div class="dato">
+        <h3>Reservas y pedidos</h3>
+        <p><a class="telefono" href="tel:+34914472522">914 47 25 22</a></p>
+        <p>Se admiten reservas y comida para llevar.</p>
+      </div>
+
+    </div>
+
+    <ul class="detalles">
+      <li>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 4h10v7H2z" fill="none" stroke="#a3161a" stroke-width="1.6"/><path d="M2 6.5h10" stroke="#a3161a" stroke-width="1.6"/></svg>
+        <span>Pago con tarjeta de crédito, débito y contactless</span>
+      </li>
+      <li>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.5 l1.6 3.5 3.9.4 -2.9 2.6.8 3.8L7 9.9 3.6 11.8l.8-3.8L1.5 5.4l3.9-.4z" fill="none" stroke="#a3161a" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <span>Precio moderado · menú del día y carta</span>
+      </li>
+      <li>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#a3161a" stroke-width="1.5"/><path d="M7 4v3.3l2.2 1.4" fill="none" stroke="#a3161a" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>Comida para llevar</span>
+      </li>
+      <li>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12.5S1.8 8.9 1.8 5.6A5.2 5.2 0 0 1 7 1.5a5.2 5.2 0 0 1 5.2 4.1c0 3.3-5.2 6.9-5.2 6.9z" fill="none" stroke="#a3161a" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <span>Aparcamiento de pago en la calle</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<div class="mantel" aria-hidden="true"></div>
+
+<section class="cierre">
+  <div class="envoltorio">
+    <h2>Le guardamos sitio en la barra</h2>
+    <p>Llámenos para reservar mesa o encargar comida para llevar.</p>
+    <div class="acciones">
+      <a class="boton boton--oro" href="tel:+34914472522">Llamar al 914 47 25 22</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="envoltorio">
+    <p><b>Bar Loreto</b></p>
+    <p>Calle de Hartzenbusch, 7 · 28010 Madrid · <a href="tel:+34914472522">914 47 25 22</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

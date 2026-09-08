@@ -144,10 +144,26 @@ export function SiteGenerator({ leadId }: { leadId: number }) {
       </div>
 
       {!state.available ? (
-        <p className="rounded-md border border-line bg-surface px-3 py-2 text-xs text-ink-muted">
-          Not available here — this needs the <code>claude</code> CLI and a Google
-          Maps API key on the machine running the app. Run it locally.
-        </p>
+        <div className="space-y-3">
+          {/* Generating needs the CLI; viewing does not. On the VPS the button
+              is impossible but the finished page is committed and served, and
+              that is the half your partner needs. */}
+          {done && build ? (
+            <a
+              href={`/demos/${build.slug}/index.html`}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-accent-ink transition-opacity hover:opacity-90"
+            >
+              Open the site
+            </a>
+          ) : null}
+          <p className="rounded-md border border-line bg-surface px-3 py-2 text-xs text-ink-muted">
+            {done
+              ? "Rebuilding needs the claude CLI, which only runs on the machine that generated this."
+              : "No site yet. Generating needs the claude CLI and a Google Maps API key, so run it locally."}
+          </p>
+        </div>
       ) : running ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">

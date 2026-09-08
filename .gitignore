@@ -44,6 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# demo sites the agent writes — regenerable, and each one embeds a business's
-# photos and reviews pulled from Google
-/generated-sites
+# Build scratch: Google's photos and the raw Places payload the agent reads.
+# Never committed — that data is Google's, not ours. `generated-sites/` holds
+# only the pages we wrote, and those ARE committed so the deployed app can
+# serve them to whoever is using it.
+/.site-work

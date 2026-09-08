@@ -19,7 +19,7 @@ import {
   PHOTOS_PER_SITE,
 } from "@/lib/places/pricing";
 import { DATA_FILE, runSiteAgent } from "./agent";
-import { INDEX_FILE, demoPath, siteDir, siteSlug } from "./paths";
+import { INDEX_FILE, demoPath, siteDir, siteSlug, workDir } from "./paths";
 
 const log = logger("generate.runner");
 
@@ -149,6 +149,13 @@ async function execute(
   await fs.rm(dir, { recursive: true, force: true });
   await fs.mkdir(dir, { recursive: true });
 
+  // Photos and the data file live outside the site, so neither is published
+  // nor committed. See WORK_ROOT.
+  const work = workDir(slug);
+  if (!work) throw new Error(`Could not resolve a working directory for ${slug}`);
+  await fs.rm(work, { recursive: true, force: true });
+  await fs.mkdir(work, { recursive: true });
+
   const cached = refresh ? null : await cachedDetails(business.id);
   let details: PlaceDetails;
   let costUsd = 0;
@@ -166,8 +173,11 @@ async function execute(
   const photos = await fetchPlacePhotos(details.photos, PHOTOS_PER_SITE);
   costUsd += photos.length * COST_PER_PHOTO_USD;
 
+  const photoPaths: string[] = [];
   for (const photo of photos) {
-    await fs.writeFile(path.join(dir, photo.file), photo.bytes);
+    const file = path.join(work, photo.file);
+    await fs.writeFile(file, photo.bytes);
+    photoPaths.push(file);
   }
 
   // What the agent reads. Our own columns come along because they carry
@@ -186,14 +196,13 @@ async function execute(
       websiteClass: business.websiteClass,
     },
     placeDetails: details,
-    photos: photos.map((p) => ({ file: p.file, attributions: p.attributions })),
+    // Paths only, and only so the agent can look at them. They are research
+    // material for the design, not assets for the page.
+    referencePhotos: photoPaths,
   };
 
-  await fs.writeFile(
-    path.join(dir, DATA_FILE),
-    JSON.stringify(payload, null, 2),
-    "utf8",
-  );
+  const dataFile = path.join(work, DATA_FILE);
+  await fs.writeFile(dataFile, JSON.stringify(payload, null, 2), "utf8");
 
   await db
     .update(siteBuilds)
@@ -207,10 +216,7 @@ async function execute(
 
   buildLog.info("agent.handoff", { photos: photos.length, costUsd });
 
-  const result = await runSiteAgent(
-    dir,
-    photos.map((p) => p.file),
-  );
+  const result = await runSiteAgent(dir, dataFile, photoPaths);
 
   if (!result.ok) {
     buildLog.error("build.failed", { error: result.error });

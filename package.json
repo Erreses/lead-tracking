@@ -15,7 +15,8 @@
     "seed:demo": "tsx scripts/seed-demo.mts",
     "logs": "tsx scripts/logs.mts",
     "db:migrate": "drizzle-kit migrate",
-    "db:import": "tsx scripts/migrate-sqlite-to-postgres.mts"
+    "db:import": "tsx scripts/migrate-sqlite-to-postgres.mts",
+    "tunnel": "ssh -N -o ExitOnForwardFailure=yes -L 5433:localhost:5432 root@188.245.185.52"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

@@ -36,6 +36,9 @@ ENV DATABASE_URL=postgres://build:build@127.0.0.1:5432/build
 
 RUN npm run build
 
+# A fresh clone has no generated sites yet, and COPY fails on a missing source.
+RUN mkdir -p /app/generated-sites
+
 # ---------------------------------------------------------------------- runner
 FROM node:24-alpine AS runner
 WORKDIR /app
@@ -61,6 +64,11 @@ COPY --from=builder --chown=node:node /app/public ./public
 
 # Not traced by the build — they are read at runtime by the migrator.
 COPY --from=builder --chown=node:node /app/drizzle ./drizzle
+
+# The demo sites, read off disk at request time by /demos/[...path]. They live
+# outside `public/` so that pages generated after this image was built are still
+# servable, which also means the build has to bring them along explicitly.
+COPY --from=builder --chown=node:node /app/generated-sites ./generated-sites
 
 USER node
 
