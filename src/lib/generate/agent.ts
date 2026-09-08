@@ -44,7 +44,7 @@ export const DESIGN_SKILL = path.join(
   process.cwd(),
   ".claude",
   "skills",
-  "demo-site-design",
+  process.env.SITE_DESIGN_SKILL ?? "frontend-design",
   "SKILL.md",
 );
 
@@ -118,6 +118,18 @@ Hard constraints, which override anything in the brief if they ever conflict:
   image, so this is not advisory.
 - One self-contained HTML file, all CSS inline in a <style> tag. No web fonts,
   no CDN, no analytics, no JavaScript. It must render with no network at all.
+- FONTS: the brief tells you to avoid system fonts. You cannot load a web font
+  here, so read that as "avoid the boring ones". Reach for the characterful
+  faces already installed on a Mac or PC and stack them with fallbacks —
+  Iowan Old Style, Palatino, Baskerville, Didot, Hoefler Text, Optima, Futura,
+  Copperplate, Avenir Next, Charter, Superclarendon. Not Arial, not Helvetica,
+  not Inter, not a bare \`sans-serif\`.
+- ANIMATION: CSS only. No JavaScript library, whatever the brief suggests.
+- The hero must FIT ON ONE SCREEN. The business name, the rating and the phone
+  button all have to be visible without scrolling — on a laptop and on a phone.
+  Use \`min-height: 100svh\` (not \`vh\`), keep hero padding modest, and if it still
+  overflows make the type smaller rather than letting the hero grow. An owner
+  who opens this to an empty field of colour has already stopped reading.
 - Invent nothing. Only facts from the data file. No hours in the data means no
   hours section. This is shown to the owner, and a wrong opening time kills the
   sale faster than a missing one.
