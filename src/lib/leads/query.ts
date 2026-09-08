@@ -1,6 +1,7 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, isNotNull, like, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
+import type { PgColumn } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/db";
 import {
@@ -84,12 +85,56 @@ function buildWhere(filters: LeadFilters): SQL | undefined {
     conditions.push(gte(businesses.userRatingCount, filters.minReviews));
   }
   if (filters.search) {
-    const term = `%${filters.search}%`;
-    const match = or(like(businesses.name, term), like(businesses.address, term));
+    const term = `%${foldAccents(filters.search)}%`;
+    const match = or(searchable(businesses.name, term), searchable(businesses.address, term));
     if (match) conditions.push(match);
   }
 
   return conditions.length ? and(...conditions) : undefined;
+}
+
+/**
+ * Accent pairs, as two strings for Postgres `translate()`.
+ *
+ * Built from a map rather than written out, because the two arguments must line
+ * up character for character and a hand-typed pair is one silent typo away from
+ * translating ñ into the wrong letter.
+ */
+const ACCENT_MAP: Record<string, string> = {
+  á: "a", à: "a", ä: "a", â: "a", ã: "a",
+  é: "e", è: "e", ë: "e", ê: "e",
+  í: "i", ì: "i", ï: "i", î: "i",
+  ó: "o", ò: "o", ö: "o", ô: "o", õ: "o",
+  ú: "u", ù: "u", ü: "u", û: "u",
+  ñ: "n", ç: "c",
+};
+
+const ACCENTED = Object.keys(ACCENT_MAP)
+  .flatMap((c) => [c, c.toUpperCase()])
+  .join("");
+const UNACCENTED = Object.values(ACCENT_MAP)
+  .flatMap((c) => [c, c.toUpperCase()])
+  .join("");
+
+/** "Peluquería" → "Peluqueria", so a search typed without accents still finds it. */
+export function foldAccents(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Match a column against an already-folded search term.
+ *
+ * `ilike`, not `like`: SQLite's LIKE ignores case and Postgres's does not, so
+ * the port quietly turned every lowercase search into a near-miss — "bar"
+ * matched 17 leads instead of 137.
+ *
+ * `translate` on top of that, because a third of these businesses have accents
+ * in their names and nobody types "Peluquería" into a search box. Folding both
+ * sides costs a sequential scan, which at a few thousand rows is nothing next
+ * to a search that silently hides most of the answer.
+ */
+function searchable(column: PgColumn, term: string): SQL {
+  return sql`translate(${column}, ${ACCENTED}, ${UNACCENTED}) ilike ${term}`;
 }
 
 function buildOrder(sort: LeadSort, dir: SortDir) {
