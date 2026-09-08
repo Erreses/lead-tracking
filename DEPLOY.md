@@ -172,6 +172,33 @@ Coolify signs everyone out immediately.
 
 ---
 
+## Generated demo sites
+
+Sites are built locally — the agent needs the `claude` CLI, which the container
+does not have — but they are meant to be seen by both of you. The route from one
+to the other is the repository:
+
+```bash
+# 1. Generate from the lead page, then:
+git add generated-sites && git commit -m "Demo site for <business>"
+git push origin main
+# 2. Redeploy in Coolify.
+```
+
+`generated-sites/` is committed and copied into the image, so `/demos/<slug>/index.html`
+resolves on the VPS exactly as it does locally — and the `demo_url` stored on the
+lead is the same string for both.
+
+What is **not** committed is `.site-work/`: the reference photographs and the raw
+Places payload. Those stay on the machine that fetched them. Places photos carry
+Google's licensing terms and the payload quotes customers' reviews verbatim;
+neither belongs in a public repository. The generated pages draw everything
+themselves in CSS and inline SVG, informed by the photos but not containing
+them, and a build fails outright if a page ends up referencing an image.
+
+On the VPS the lead page shows the link to any finished site but not the
+generate button, since there is no CLI there to run.
+
 ## Backups
 
 The app snapshots the database with `pg_dump` before every scrape, keeping the
@@ -205,29 +232,36 @@ Or use Coolify's log viewer for stdout.
 
 ## Running locally against the VPS data
 
+**This is how the project is set up now.** There is one database — the one on the
+VPS — and your machine reaches it through an SSH tunnel. That is what lets two
+people see the same leads, the same statuses and the same generated sites.
+
 The database is bound to the VPS's loopback interface, so nothing off that
 machine can reach it. An SSH tunnel can, and you already need a key for that:
 
 ```bash
-# Leave this running in one terminal.
-ssh -N -L 5433:localhost:5432 root@your-vps
+npm run tunnel      # leave this running in its own terminal
+npm run dev         # in another
 ```
 
-With the tunnel up, point your local app at it:
+`.env.local` already points `DATABASE_URL` at `localhost:5433`, the near end of
+that tunnel, using the generated `SERVICE_PASSWORD_POSTGRES`. **Without the
+tunnel running, `npm run dev` cannot reach the database** — that is the trade for
+one shared database instead of two that drift apart.
 
-```bash
-DATABASE_URL="postgres://lead_tracking:<password>@localhost:5433/lead_tracking" npm run dev
-```
+Your old local database is still on the machine, untouched, and its connection
+string is commented out just above the live one in `.env.local` if you ever want
+to work offline.
 
-Get `<password>` from the resource's environment in Coolify — it is the
-generated `SERVICE_PASSWORD_POSTGRES`.
-
-Be aware this is the live database. There is no staging copy; a `DELETE` here is
-a `DELETE` there.
+> **You are now working against production.** There is no staging copy. A DELETE
+> here is a DELETE for both of you, and `npm run seed:demo` would put fake
+> businesses in front of your partner. The test suite is unaffected: it uses its
+> own `lead_tracking_test` database and refuses to run against anything not
+> named `*_test`.
 
 ---
 
-## Local development, unchanged
+## Local development against a local database
 
 Nothing above affects day-to-day work. With no `APP_ACCESS_PASSWORD` set, the
 login screen is skipped entirely:
